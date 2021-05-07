@@ -23,8 +23,8 @@ myframes_switching <- myframes %>%
   select(condition, date, pos, gl, id, genealogy, start_time, end_time, end_type, dt,
          time_sec, medium, m_start, m_end, gfp_nb, length_um, m_cycle, cell_num_in_lane, total_cell_in_lane) %>% 
   # prolonge traces with daughters' data
-  partition(date, pos, gl, cluster=mycluster) %>%
-  # group_by(date, pos, gl) %>%
+  group_by(date, pos, gl) %>%
+  partition(mycluster) %>%
   do((function(.dfgl) {
     # browser()
     .dfgl %>% 
@@ -111,8 +111,8 @@ myframes_switching %>%
 ```{r lag estimation}
 mycells_switching <- myframes_switching %>%
   filter(fit_lag) %>% 
-  # group_by(condition, switch_idx, date, pos, gl, ugen) %>%
-  partition(condition, switch_idx, date, pos, gl, ugen, cluster=mycluster %>% cluster_assign_func(compute_lag) ) %>%
+  group_by(condition, switch_idx, date, pos, gl, ugen) %>%
+  partition(mycluster %>% cluster_copy("compute_lag") ) %>%
   do((function(.df){
     # browser()
     # print(unique(.df$ugen))

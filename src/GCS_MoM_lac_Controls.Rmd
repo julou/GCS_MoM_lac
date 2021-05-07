@@ -17,8 +17,8 @@ mycells_btw <- myframes %>%
   filter(start_time>0, start_time>=m_start, end_type=='div') %>% 
   # select(condition, date, pos, gl, id, genealogy, start_time, end_time, end_type, 
          # time_sec, medium, m_start, m_end, gfp_nb, length_um, m_cycle, cell_num_in_lane, total_cell_in_lane) %>% 
-  # group_by(date, pos, gl, id) %>%
-  partition(condition, date, pos, gl, id, cluster=mycluster) %>%
+  group_by(condition, date, pos, gl, id) %>%
+  partition(mycluster) %>%
   # filter(start_time>m_start, end_type=='div', # full cell cycles only
   #        length(unique(interaction(medium, m_cycle)))==1) %>%  # not overlaping a switch
   filter((unique(medium)!='glycerol' & n()>9) | # at least 10 time points (≈1/3 of cell cycle)

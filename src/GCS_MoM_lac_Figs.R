@@ -109,7 +109,7 @@ save_plot(here("plots", "MoM_lacDilution_fig2.pdf"), myfigs[[2]],
     # scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dashed')) +
     scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
     theme(legend.position = 'none') +
-    NULL)
+    NULL
 )
 
 

@@ -27,8 +27,8 @@ myframes %>%
   mutate(filename=file.path(".", "plots", "GCplots", sprintf("%s__%s.pdf", basename, var))) %>% 
   # for each file, create it if missing (partition() doesn't work yet)
   group_by_(., .dots=names(.)) %>% # grouping by all variables
-  # partition_(., groups=names(.), cluster=mycluster %>% cluster_assign_obj(myframes, vertical_cutoff) %>% 
-  #              cluster_assign_func(plot_faceted_var_tracks)) %>% # grouping by all variables
+  # partition_(., groups=names(.), cluster=mycluster %>% cluster_copy(c("myframes", "vertical_cutoff")) %>% 
+  #              cluster_copy("plot_faceted_var_tracks")) %>% # grouping by all variables
   do((function(.dff, .skip=TRUE){
     if (file.exists(.dff$filename) && .skip) return(data.frame())
     # browser()

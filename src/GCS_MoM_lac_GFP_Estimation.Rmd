@@ -206,9 +206,8 @@ bleaching_fits <- myframes %>%
   filter(medium=='glucose', m_cycle>1, time_sec>m_start+30*60) %>%
   # # ungroup %>% filter(gl_id %in% nth(unique(gl_id), 11)) %>% # workaround a dplyr 0.5 bug
   # ungroup %>% filter(gl_id %in% (unique(gl_id)[[11]]) ) %>%
-  # group_by(condition, date, pos, gl, id) %>%
-  partition(condition, date, pos, gl, id,
-            cluster=mycluster %>% cluster_assign_func(autofluo_predict)) %>%
+  group_by(condition, date, pos, gl, id) %>%
+  partition(mycluster %>% cluster_copy("autofluo_predict")) %>%
   filter(m_cycle==first(m_cycle)) %>% # discard cells spanning several switches
   filter(mean(fluogfp_amplitude) > mean(autofluo_predict(length_um))) %>% # discard cells with fluo lower than avg autofluo
   mutate(npoints=sum(fluogfp_amplitude>0)) %>%
@@ -392,10 +391,9 @@ set.seed(19082328)
 swi_triads <- filter(myframes, !discard_start, !discard_top, condition=='switch_04h') %>% 
   filter(medium=='glucose', m_cycle>1, time_sec>=m_start+30*60, time_sec<=m_end-30*60) %>%
   filter(cell_num_in_lane < total_cell_in_lane) %>% 
-  # group_by(date, pos, gl) %>%
-  partition(date, pos, gl,
-            cluster=mycluster %>% cluster_assign_obj(bleaching_rate, triad_avgw, triad_fitw) %>%
-              cluster_assign_func(autofluo_predict)) %>%
+  group_by(date, pos, gl) %>%
+  partition(mycluster %>% cluster_copy(c("bleaching_rate", "triad_avgw", "triad_fitw")) %>%
+              cluster_copy("autofluo_predict")) %>%
   do( (function(.df1){
     # first loop on all growth lanes
     filter(.df1, end_type=="div") %>%

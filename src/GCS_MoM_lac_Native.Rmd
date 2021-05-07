@@ -736,7 +736,8 @@ mycells_switching_memory <- mycells_switching %>% ungroup() %>%
       filter(str_detect(condition, '^switch_[0-9]+h$')) %>%
       filter(medium=='lactose', m_cycle==1) %>%
       filter(abs(time_sec-(m_end-dt))<1) %>%
- %>% %>% %>% <- %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% <- %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% <- %>% %>% %>%       mutate(parent=str_replace(parent, ":", "")),
+      select(date, pos, gl, parent=genealogy, parent_gfp=gfp_nb) %>%
+      mutate(parent=str_replace(parent, ":", "")),
     by=c("date", "pos", "gl", "parent") ) %>% 
   mutate(divs_since_par = str_length(genealogy) - str_length(parent)) %>% 
   left_join(

@@ -5,12 +5,4 @@ plots
 preproc
 data_*
 html
-old
-packrat/lib*/
-packrat/src/
-manuscript/*.log
-manuscript/*.out
-manuscript/*.tex
-manuscript/*.aux
-manuscript/*.pdf
-manuscript/*_files/
+src/html
