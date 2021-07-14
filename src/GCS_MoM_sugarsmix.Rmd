@@ -1,0 +1,1059 @@
+---
+title: "Growth-coupled sensitivity to lactose during E. coli growth on glucose-lactose mixture"
+author: Thomas Julou
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+---
+
+
+```{r}
+# utility function to parse conditions
+parse_sugarmix_conds <- function(data, colname) {
+  .groups <- groups(data)
+  data %>% 
+    ungroup() %>% 
+    extract({{colname}}, "glu", "glu(\\d+)uM", remove=FALSE, convert=TRUE) %>% 
+    mutate(
+      glu = ifelse({{colname}}=='lac002', 0, glu),
+      glu = ifelse(str_detect({{colname}}, 'glu002'), 1110, glu),
+      glu = ifelse(str_detect({{colname}}, 'glu02'), 11101, glu),
+      treatment = NA,
+      treatment = ifelse(str_detect({{colname}}, '^glu\\d+'), 'none', treatment),
+      treatment = ifelse(str_detect({{colname}}, 'lac002'), 'lac002', treatment),
+      treatment = ifelse(str_detect({{colname}}, 'IPTG'), 'iptg', treatment),
+      treatment = fct_relevel(treatment, 'none', 'lac002', 'iptg'),
+    ) %>% 
+    group_by(!!!.groups)
+}
+
+```
+
+ 
+```{r eval=FALSE}
+# visualizing the position of cell bounding box has helped fixing various issues with data import
+myframes %>% 
+  filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  # filter(date == 20210122) %>% 
+  # remove frames after touching the exit
+  group_by(id, .add=TRUE) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>% 
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  group_by(cell) %>% nest() %>% ungroup() %>% slice_sample(n=20) %>% unnest(data) %>% 
+  ggplot(aes(time_sec, length_um, col=cell)) +
+  facet_wrap(~cell, scales='free') +
+  # geom_hline(yintercept = .8) +
+  # geom_line(aes(col=cell, group=cell)) +
+  # geom_point() +
+  geom_segment(aes(x=time_sec, xend=time_sec, y=vertical_bottom, yend=vertical_top, alpha=!discard_top)) +
+  scale_x_hours(.5) +
+  scale_colour_periodic(guide='none') +
+  theme(legend.position = 'none') +
+  NULL
+
+```
+
+
+```{r check raw traces, eval=FALSE}
+myframes %>% 
+  filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  # filter(date == 20210122) %>% 
+  mutate(condition=fct_inorder(condition)) %>% 
+  # remove frames after touching the exit
+  group_by(id, .add=TRUE) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top) %>% 
+  group_by(condition, date, cell) %>% nest() %>% 
+  group_by(condition, date) %>% sample_n(50L) %>% unnest(data) %>% 
+  ggplot(aes(time_sec, length_um)) +
+  facet_wrap(~date+condition, ) +
+  # geom_hline(yintercept = .8) +
+  geom_line(aes(col=cell, group=cell), alpha=.4) +
+  scale_x_hours() +
+  scale_y_continuous(trans='log2') +
+  scale_colour_periodic(guide='none') +
+  NULL
+
+myframes %>% 
+  filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  # filter(date == 20210122) %>% 
+  mutate(condition=fct_inorder(condition)) %>% 
+  # remove frames after touching the exit
+  group_by(id, .add=TRUE) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top, !is.na(gfp_nb)) %>% 
+  group_by(condition, date, cell) %>% nest() %>% 
+  group_by(condition, date) %>% sample_n(50L) %>% unnest(data) %>% 
+  ggplot(aes(time_sec, gfp_nb)) +
+  facet_wrap(~date+condition) +
+  # geom_hline(yintercept = .8) +
+  geom_line(aes(col=cell, group=cell), alpha=.4) +
+  scale_x_hours() +
+  scale_colour_periodic(guide='none') +
+  NULL
+
+```
+
+
+```{r}
+myframes %>% 
+  filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  # filter(date == 20210122) %>% 
+  mutate(condition=fct_inorder(condition)) %>% 
+  # remove frames after touching the exit
+  group_by(id, .add=TRUE) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top, !is.na(gfp_nb)) %>% 
+  mutate(induced=gfp_nb>250) %>% 
+  group_by(condition, date, cell) %>% nest() %>% 
+  group_by(condition, date) %>% sample_n(50L) %>% unnest(data) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  ggplot(aes(time_sec, length_um, col=gfp_nb/length_um)) +
+  # facet_wrap(~date+condition, labeller = as_labeller(label_value, multi_line=FALSE)) +
+  facet_wrap(~ treatment + glu + date, labeller = as_labeller(label_value, multi_line=FALSE)) +
+  # facet_wrap(~condition + induced) +
+  geom_vline(xintercept = 4*3600, lty='dotted') +
+  geom_line(aes(group=cell), alpha=.4) +
+  scale_x_hours() +
+  scale_y_continuous(limits=c(.8, 6), trans='log2') +
+  scale_color_viridis_c(limits=c(NA, 1000), oob=scales::squish) +
+  labs(y="cell length (µm)", col="[LacZ-GFP]") +
+  NULL
+# ggsave("plots/sugar_mixtures_traces.pdf", width=9, height=5)
+
+```
+
+
+## Analysing growth rates of induced and uninduced cells in each mixture
+
+This analysis focuses on growth rates computed over full cell cycles.
+We consider all traces with 4 observations or more, after discarding the first 4 hours (where [LacZ-GFP] obviously adjusts due to environmental changes compared to preculture conditions).
+
+```{r cache=TRUE}
+myrates_mix <- myframes %>% 
+  filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  # filter(date == 20210122) %>% 
+  mutate(condition=fct_inorder(condition)) %>%
+  # filter(! (date==20210122 & condition %in% c('lac002_glu4uM', 'lac002_glu16uM'))) %>% 
+  # remove frames after touching the exit
+  group_by(id, .add=TRUE) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top) %>% 
+  # call cell induced as soon as it crossed the 250 threshold
+  mutate(gfp_nb_raw=gfp_nb) %>% 
+  fill(gfp_nb, .direction="downup") %>% 
+  mutate(induced=gfp_nb>250) %>% 
+  # compute growth rate over cell cycles
+  filter(time_sec > 4 * 3600) %>% 
+  group_by(date, condition, cell) %>% 
+  filter(n()>3) %>% 
+  nest() %>% 
+  group_by(date, condition) %>% 
+  partition(mycluster) %>% 
+  mutate(
+    n=map_dbl(data, ~nrow(.x)),
+    induced=map_dbl(data, ~mean(.x$induced)),
+    mod = map(data, ~RcppArmadillo::fastLm( cbind(1, .x$time_sec), log(.x$length_um))),
+    grate = map_dbl(mod, ~.$coef[2] ),
+    r2 = map_dbl(data, ~cor(.x$time_sec, log(.x$length_um))^2),
+  ) %>% 
+  collect()
+
+```
+
+We first establish an induction criteria. Computing the proportion of observation where [LacZ-GFP] > 250 yields clearly bimodal distribution with cells either induced or not, so one can reasonably stratify by this variable.
+
+Note that while it could look appealing to stratify by the expression state of the *lac* operon (i.e. whether a cell has produced Lac proteins during the current cell cycle), what actually matters for growing on lactose is the current concentration on Lac proteins, hence the criteria used here.
+
+```{r}
+myrates_mix %>% 
+  parse_sugarmix_conds(condition) %>% 
+  ggplot(aes(induced, col=factor(date))) +
+  # facet_wrap(~date, scales='free') +
+  facet_grid(glu~treatment) +
+  # geom_freqpoly(aes(y=after_stat(density)))
+  geom_freqpoly(aes(y=after_stat(density))) +
+  xlim(0, 1)
+```
+
+```{r eval=FALSE}
+# Let us check that our dataset is not odminated by very short traces.
+# This actually reveals an unexpected change of traces length when adding IPTG (to be looked at in more details).
+myrates_mix %>% 
+  parse_sugarmix_conds(condition) %>% 
+  ggplot(aes(n, col=factor(date), lty=factor(round(induced)))) +
+  facet_grid(glu~treatment) +
+  # geom_freqpoly(aes(y=after_stat(density)))
+  stat_ecdf(aes(y=1-after_stat(y))) +
+  coord_cartesian(xlim=c(0, 200)) + 
+  NULL
+
+# Let's check the distribution of r2... should maybe keep traces with 10 points or more
+myrates_mix %>% 
+  parse_sugarmix_conds(condition) %>% 
+  ggplot(aes(r2, col=factor(date), lty=factor(round(induced)))) +
+  facet_grid(glu~treatment) +
+  # geom_freqpoly(aes(y=after_stat(density)))
+  stat_ecdf() +
+  # coord_cartesian(xlim=c(0, 200)) + 
+  NULL
+
+myrates_mix %>% 
+  parse_sugarmix_conds(condition) %>% 
+  ggplot(aes(n, r2, col=factor(date))) +
+  facet_grid(glu~treatment) +
+  geom_vline(xintercept=10, lty='dotted') +
+  geom_point(stroke=0, alpha=.2, size=1) +
+  coord_cartesian(xlim=c(0, 100)) +
+  NULL
+```
+
+Let's check growth rate distributions as a function of glucose concentration for different treatments.
+
+```{r}
+myrates_mix %>% 
+  filter(n>10) %>% 
+  filter(induced<.05 | induced>.95) %>% 
+  mutate(induced=round(induced)) %>% 
+  group_by(date, condition) %>% 
+  mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  ggplot(aes(grate/log(2)*3600, col=factor(round(induced)))) +
+  facet_grid(glu~treatment) +
+  geom_freqpoly(aes(y=after_stat(density), size=prop, group=interaction(date, condition, prop)), binwidth=.1) +
+  scale_y_continuous(breaks = scales::breaks_extended(n=3)) +
+  coord_cartesian(xlim=c(-.25, 1.5), ylim=c(0, 3.5)) +
+  scale_size_continuous(range=c(0.05, 1), guide='none') +
+  scale_colour_discrete(name='', labels=c('0'='uninduced', '1'='induced')) +
+  labs(x='growth rate (dbl/h)') +
+  theme(legend.position = 'top') +
+  NULL
+```
+
+Let us compute the proportion of induced cells as a function of glucose concentration. For this, we first examine how this proportion changes during the experiment in order to estimate it after the transient.
+
+```{r}
+# plot prop_induced vs conc
+myrates_mix %>% 
+  # filter(n>10) %>% 
+  mutate(time_birth=map_dbl(data, ~min(.$time_sec))) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  ggplot(aes(time_birth, induced)) +
+  facet_grid(glu~treatment) +
+  # geom_hline(yintercept=c(0, 1), col='gray80') +
+  geom_vline(xintercept = 5 * 3600, lty='dotted') +
+  geom_point(stroke=0, alpha=.2, size=1, position = position_jitter(height = .1)) +
+  scale_x_hours() +
+  theme(panel.background = element_rect(fill='gray93')) +
+  NULL
+
+myrates_mix %>% 
+  filter(n>10) %>% 
+  filter(induced<.05 | induced>.95) %>% 
+  mutate(induced=round(induced)) %>% 
+  group_by(date, condition) %>% 
+  mutate(time_birth=map_dbl(data, ~min(.$time_sec)),
+         time_bin = cut_width(time_birth, width = 3600, boundary = 0, labels=FALSE)) %>% 
+  group_by(date, condition, time_bin) %>% 
+  summarise(n=n(), prop=sum(induced)/n) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  ggplot(aes(time_bin, prop, col=factor(date))) +
+  facet_grid(glu~treatment) +
+  # geom_hline(yintercept=c(0, 1), col='gray80') +
+  # geom_vline(xintercept = 5 * 3600, lty='dotted') +
+  geom_point(aes(size=n)) +
+  geom_line() +
+  theme(panel.background = element_rect(fill='gray93')) +
+  NULL
+
+# # pooling all observations after the transient
+# myrates_mix %>% 
+#   filter(n>10) %>% 
+#   filter(induced<.05 | induced>.95) %>% 
+#   mutate(induced=round(induced)) %>% 
+#   group_by(date, condition) %>% 
+#   mutate(time_birth=map_dbl(data, ~min(.$time_sec))) %>% 
+#   filter(time_birth > 5 * 3600,
+#           ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
+#   summarise(n=n(), prop=sum(induced)/n, se=sqrt(prop*(1-prop)/n)) %>% 
+#   parse_sugarmix_conds(condition) %>% 
+#   filter(treatment=='lac002') %>% 
+#   ggplot(aes(glu, prop, col=factor(date))) +
+#   # geom_pointrange(aes(ymin=prop-se, ymax=prop+se)) +
+#   geom_pointrange(aes(ymin=prop-se, ymax=prop+se), 
+#                   position=position_dodge(width=.2), data=~filter(., glu>0)) +
+#   scale_x_continuous(trans='log2') +
+#   NULL
+
+# estimating uncertainty as sd over time windows of 1h
+myrates_mix %>% 
+  filter(n>10) %>% 
+  filter(induced<.05 | induced>.95) %>% 
+  mutate(induced=round(induced)) %>% 
+  group_by(date, condition) %>% 
+  mutate(time_birth=map_dbl(data, ~min(.$time_sec)),
+         time_bin = cut_width(time_birth, width = 3600, boundary = 0, labels=FALSE)) %>% 
+  filter(time_birth > 5 * 3600,
+          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
+  group_by(date, condition, time_bin) %>% 
+  summarise(n=n(), p=sum(induced)/n) %>% 
+  group_by(date, condition) %>% 
+  summarise(n=mean(n), prop=mean(p), se=sd(p)) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment=='lac002') %>% 
+  ggplot(aes(glu, prop, col=factor(date))) +
+  # geom_pointrange(aes(ymin=prop-se, ymax=prop+se)) +
+  geom_pointrange(aes(ymin=prop-se, ymax=prop+se), 
+                  position=position_dodge(width=.2), data=~filter(., glu>0)) +
+  scale_x_continuous(trans='log2') +
+  NULL
+
+```
+
+
+```{r eval=FALSE}
+# Same analysis considering all observations (rather than one summary statistics per celle cycle)
+myframes %>% 
+  filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  # remove frames after touching the exit
+  group_by(id, .add=TRUE) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top) %>% 
+  # call cell induced as soon as it crossed the 250 threshold
+  mutate(gfp_nb_raw=gfp_nb) %>% 
+  fill(gfp_nb, .direction="downup") %>% 
+  mutate(induced=gfp_nb>250) %>% 
+  group_by(date, condition, time_sec) %>% 
+  summarise(prop_induced=sum(induced)/n(), n=n()) %>% 
+  group_by(date, condition) %>% 
+  mutate(prop_cells=n/max(n)) %>% 
+  filter(cumall(n>10)) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  ggplot(aes(time_sec, prop_induced)) +
+  facet_grid(glu~treatment) +
+  geom_line(aes(col=factor(date))) +
+  scale_x_hours() +
+  theme(panel.background = element_rect(fill='gray93')) +
+  NULL
+
+myframes %>% 
+  ungroup() %>% 
+  # filter(date==20210504 & str_detect(condition, "lac002") | 
+  #          date==20210506 & condition=="lac002_glu64uM") %>% 
+  filter(time_sec < 30 * 3600) %>% 
+# 
+    filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  # remove frames after touching the exit
+  group_by(date, pos, gl, id, .add=TRUE) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top) %>% 
+  # # call cell induced as soon as it crossed the 250 threshold
+  # mutate(gfp_nb_raw=gfp_nb) %>% 
+  # fill(gfp_nb, .direction="downup") %>% 
+  filter(!is.na(gfp_nb)) %>% 
+  mutate(induced=gfp_nb>250) %>% 
+  group_by(date, condition, pos, gl, time_sec) %>% 
+  nest() %>% 
+  mutate(n=map_dbl(data, ~nrow(.)),
+         prop_induced = map_dbl(data, ~sum(.$induced)/nrow(.)),
+         # b_induced = map_dbl(data, filter(., b_rank==0)$induced == TRUE),
+         ) %>% 
+  # group_by(date, condition, pos, gl) %>% 
+  # filter(cumall(n>3)) %>% 
+  parse_sugarmix_conds(condition) %>%
+  ggplot(aes(time_sec, prop_induced, col=factor(date), group=interaction(condition, date, pos, gl))) +
+  facet_grid(glu~treatment, space="free_x") +
+  geom_line(aes(), alpha=.4) +
+  scale_x_hours() +
+  theme(panel.background = element_rect(fill='gray93')) +
+  NULL
+
+```
+
+Fit a Hill function
+
+```{r}
+hill_fn <- function(c, k, m)  1 / (1 + (c/k)^m)
+
+# myrates_mix %>% 
+#   filter(n>10) %>% 
+#   filter(induced<.05 | induced>.95) %>% 
+#   mutate(induced=round(induced)) %>% 
+#   group_by(date, condition) %>% 
+#   mutate(time_birth=map_dbl(data, ~min(.$time_sec))) %>% 
+#   filter(time_birth > 5 * 3600,
+#           ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
+#   summarise(n=n(), prop=sum(induced)/n, se=sqrt(prop*(1-prop)/n)) %>% 
+#   parse_sugarmix_conds(condition) %>% 
+#   filter(treatment=='lac002') %>% 
+#   ggplot(aes(glu, prop)) +
+#   # geom_pointrange(aes(ymin=prop-se, ymax=prop+se)) +
+#   geom_pointrange(aes(ymin=prop-se, ymax=prop+se, col=factor(date)), 
+#                   position=position_dodge(width=.2), data=~filter(., glu>0)) +
+#   geom_pointrange(aes(ymin=prop-se, ymax=prop+se, col=factor(date)), 
+#                   position=position_jitter(width=.2, height = 0), data=~filter(., glu==0)) +
+#   stat_function(fun=hill_fn, args=list(k=68, m=41), data=NULL) +
+#   scale_x_continuous(trans='log2') +
+#   # xlim(0, 200) +
+#   NULL
+
+# set.seed(881676)
+myindct <- myrates_mix %>% 
+  filter(n>10) %>% 
+  filter(induced<.05 | induced>.95) %>% 
+  mutate(induced=round(induced)) %>% 
+  group_by(date, condition) %>% 
+  mutate(time_birth=map_dbl(data, ~min(.$time_sec)),
+         time_bin = cut_width(time_birth, width = 3600, boundary = 0, labels=FALSE)) %>% 
+  filter(time_birth > 5 * 3600,
+          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
+  group_by(date, condition, time_bin) %>% 
+  summarise(n=n(), p=sum(induced)/n) %>% 
+  group_by(date, condition) %>% 
+  summarise(n=mean(n), prop=mean(p), se=sd(p)) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment=='lac002') %>% 
+  group_by(treatment) %>% nest() %>%
+  mutate(
+    data_fit = map(data, ~filter(.x, glu > 0, !(date==20210122 & glu==16))),
+    mod=map(data_fit, function(.d, .n=20, # run nls() .n times to keep the fit with lowest rss
+                           .lower=list(k=log(5), m=2),
+                           .upper=list(k=log(200), m=100) ) {
+      .mods <- replicate(.n, simplify=FALSE, expr=try(silent=TRUE, expr=nls(
+        prop~hill_fn(log(glu), k, m), data=.d, 
+        # weigths=log(activity+1),
+        algorithm='port', control=nls.control(maxiter = 1e3, minFactor = 1/2^15), 
+        start=map2(.lower, .upper, ~runif(1, .x, .y)), lower=.lower, upper=.upper,
+      )) )
+      .rss <- map_dbl(.mods, ~{ if (class(.x) == "try-error") NA else .x$m$deviance() })
+      if (all(is.na(.rss))) return(.mods[[1]]) else return(.mods[[which.min(.rss)]])
+    }),
+    fitted=map_chr(mod, ~class(.x)),
+  ) %>% 
+  filter(fitted != 'try-error') %>% 
+  mutate(
+    # coef = map(mod, ~ as_tibble(t(coef(.x)))),
+    coef = map(mod, ~ summary(.x)$coef[,1:2] %>% t() %>% as_tibble() %>% mutate(var=c("", "_se")) %>% 
+                 pivot_wider(names_from=var, values_from=-var, names_sep="") ),
+    prediction=list(tibble(glu=2^seq(0, 11, length.out = 101))),
+    prediction=map2(mod, prediction, function(.m, .d) mutate(.d, prop=predict(.m, .d) )),
+  ) %>% 
+  identity()
+
+myindct %>% 
+  ggplot( ) +
+  geom_line(aes(glu, prop),
+            data = ~select(., prediction) %>% unnest(prediction)) +
+  geom_pointrange(aes(glu, prop, ymin=prop-se, ymax=prop+se, col=factor(date)),
+                  position=position_dodge(width=.2), 
+                  data = ~select(., data) %>% unnest(data) %>% filter(glu>0)) +
+  geom_pointrange(aes(glu, prop, ymin=prop-se, ymax=prop+se, col=factor(date)),
+                  position=position_jitter(width=.2, height = 0), 
+                  data = ~select(., data) %>% unnest(data) %>% filter(glu==0)) +
+  scale_x_continuous(trans='log2') +
+  coord_cartesian(xlim=c(1.5, NA)) +
+  NULL
+
+```
+
+Summarizing growth rate dependence to glucose concentration.
+<!-- Mind a bug of geom_pointrange() with x=0, position=dodge and trans=log -->
+
+```{r}
+myrates_mix %>% 
+  group_by(date, condition) %>% 
+  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  filter(induced==0 | induced==1) %>% 
+  group_by(date, condition, induced) %>% 
+  summarise(
+    gr_mean=mean(grate/log(2)*3600),
+    gr_sd  =sd(grate/log(2)*3600),
+    n=n(),
+  ) %>% 
+  group_by(date, condition) %>% 
+  mutate(prop=n/sum(n)) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  ggplot(aes(glu, gr_mean, col=factor(induced))) +
+  facet_wrap(~treatment, ncol=1) +
+  annotate("rect", xmin = -Inf, xmax = 2.5, ymin = -Inf, ymax = Inf, alpha = .2, fill='gray70') +
+  geom_hline(aes(yintercept = gr_mean, col=NULL), 
+             data=~filter(., treatment=='lac002', glu==0, induced==1) %>% 
+               ungroup() %>% summarise(gr_mean=mean(gr_mean)) ) +
+  # must filter glu>0 with position=dodge
+  geom_pointrange(aes(ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, size=prop),
+                  position=position_dodge2(width=.4), 
+                  data=~filter(., glu > 0) ) +
+  coord_cartesian(ylim=c(NA, 1.4)) +
+  scale_size_continuous(range=c(0.05, .5), guide='none') +
+  scale_x_continuous(trans='log2') +
+  labs(y='growth rate (dbl/h)') +
+  scale_colour_discrete(name='', labels=c('0'='uninduced', '1'='induced')) +
+  theme_cowplot() +
+  theme(legend.position = c(0, 1), legend.justification = c(0, 0.7)) +
+  NULL
+
+```
+
+```{r}
+(function() {
+  .gr_pl <-
+    myrates_mix %>% 
+    group_by(date, condition) %>% 
+    filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+    filter(induced==0 | induced==1) %>% 
+    group_by(condition, induced) %>% 
+    summarise(
+      gr_mean=mean(grate/log(2)*3600),
+      gr_sd  =sd(grate/log(2)*3600),
+      n=n(),
+    ) %>% 
+    group_by(condition) %>% 
+    mutate(prop=n/sum(n)) %>% 
+    parse_sugarmix_conds(condition) %>% 
+    filter(treatment != "iptg") %>%
+    ggplot(aes(glu, gr_mean, col=treatment, shape=factor(induced))) +
+    geom_rect(aes(xmin=0, xmax=Inf, ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, col=NULL), 
+              fill="gray92", show.legend=FALSE,
+              data=~filter(., treatment=='lac002', glu==0, induced==1) ) +
+    geom_hline(aes(yintercept = gr_mean, col=NULL), col="gray40",
+               data=~filter(., treatment=='lac002', glu==0, induced==1) ) +
+    # must filter glu>0 with position=dodge
+    geom_point(aes(col=treatment), size=3,
+               position=position_dodge2(width=.6), #show.legend=FALSE,
+               data=~filter(., glu > 0) ) +
+    geom_linerange(aes(ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd),
+                    position=position_dodge2(width=.6), show.legend=FALSE,
+                    data=~filter(., glu > 0) ) +
+    # display legend without errorbars
+    # geom_point(aes(size=prop), data=NULL, show.legend=TRUE) +
+    coord_cartesian(ylim=c(NA, 1.25)) +
+    scale_size_continuous(range=c(0.05, .5), guide='none') +
+    scale_x_continuous(trans='log2') +
+    labs(x='[glucose] (µM)', y='growth rate (dbl/h)') +
+    scale_shape_discrete(name='lac expression', labels=c('0'='uninduced', '1'='induced')) +
+    scale_colour_discrete(name='treatment', labels=c('none'='glucose only', 'lac002'='glucose + lactose 0.02%')) +
+    theme_cowplot() +
+    theme(legend.position = "bottom", legend.box = "vertical", 
+          legend.box.just="left", legend.spacing = unit(0, "cm")) +
+    NULL
+  
+  .prop_pl <-
+    myindct %>% 
+    ggplot( ) +
+    geom_hline(yintercept = c(0, 1), lty='dotted', col='gray40') +
+    geom_line(aes(glu, prop),
+              data = ~select(., prediction) %>% unnest(prediction)) +
+    # must filter glu>0 with position=dodge (already done in data_fit)
+    geom_pointrange(aes(glu, prop, ymin=prop-se, ymax=prop+se, group=date), 
+                    col=qual_cols[2], shape='square',
+                    position=position_dodge(width=.3), 
+                    data = ~select(., data_fit) %>% unnest(data_fit) ) +
+    geom_pointrange(aes(glu, prop, ymin=prop-se, ymax=prop+se, group=date), 
+                    col=qual_cols[2], shape='square',
+                    position=position_jitter(width=.3, height = 0), 
+                    data = ~select(., data) %>% unnest(data) %>% filter(glu==0)) +
+    scale_x_continuous(trans='log2') +
+    coord_cartesian(xlim=c(1.5, NA)) +
+    NULL
+  
+  plot_grid(
+    .prop_pl +
+      coord_cartesian(xlim=c(1.5, 1.2e3)) +
+      scale_x_continuous(trans="log2", breaks=c(2^c(2, 6, 10))) +
+      scale_y_continuous(breaks=c(0, 1)) +
+      labs(y="prop.\ninduced") +
+      theme(axis.title.x = element_blank(), axis.text.x = element_blank(), 
+            axis.ticks.x = element_blank(), axis.line.x = element_blank()) +
+      NULL, 
+    .gr_pl +
+      coord_cartesian(xlim=c(1.5, 1.2e3), ylim=c(NA, 1.4)) +
+      scale_x_continuous(trans="log2", breaks=c(2^c(2, 6, 10)) ) +
+      guides(col = guide_legend(order = 1, reverse=TRUE)) +
+      theme_cowplot_legend_inset() +
+      NULL,
+    ncol = 1, rel_heights = c(0.6, 2), align = "v"
+  )
+})()
+
+```
+
+```{r}
+(myplots[['sugarmix_induction']] <- function() {
+  .gr_pl <-
+    myrates_mix %>% 
+    group_by(date, condition) %>% 
+    filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+    filter(induced==0 | induced==1) %>% 
+    group_by(condition, induced) %>% 
+    summarise(
+      gr_mean=mean(grate/log(2)*3600),
+      gr_sd  =sd(grate/log(2)*3600),
+      n=n(),
+    ) %>% 
+    group_by(condition) %>% 
+    mutate(prop=n/sum(n)) %>% 
+    parse_sugarmix_conds(condition) %>% 
+    filter(treatment != "iptg") %>%
+    ggplot(aes(glu, gr_mean, shape=treatment)) +
+    geom_rect(aes(xmin=0, xmax=Inf, ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, col=NULL), 
+              fill="gray92", show.legend=FALSE,
+              data=~filter(., treatment=='lac002', glu==0, induced==1) ) +
+    geom_hline(aes(yintercept = gr_mean, col=NULL), col="gray40",
+               data=~filter(., treatment=='lac002', glu==0, induced==1) ) +
+    # must filter glu>0 with position=dodge
+    geom_point(aes(col=factor(induced)), size=3, 
+                    position=position_dodge2(width=.6), 
+                    data=~filter(., glu > 0) ) +
+    geom_linerange(aes(ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, col=factor(induced)),
+                    position=position_dodge2(width=.6), show.legend=FALSE,
+                    data=~filter(., glu > 0) ) +
+    # display legend without errorbars
+    # geom_point(aes(fill=factor(induced)), show.legend=TRUE, size=5) +
+    coord_cartesian(ylim=c(NA, 1.4)) +
+    scale_x_continuous(trans='log2') +
+    scale_y_continuous(breaks=c(0, 0.5, 1)) +
+    labs(x='[glucose] (µM)', y='growth rate (dbl/h)') +
+    scale_colour_discrete(name='lac expression', labels=c('0'='uninduced', '1'='induced')) +
+    scale_shape_discrete(name='treatment', labels=c('none'='glucose only', 'lac002'='glucose + lactose 0.02%')) +
+    theme_cowplot() +
+    theme(legend.position = "bottom", legend.box = "vertical", 
+          legend.box.just="left", legend.spacing = unit(0, "cm")) +
+    NULL
+  
+  .prop_pl <-
+    myindct %>% 
+    ggplot( ) +
+    geom_hline(yintercept = c(0, 1), lty='dotted', col='gray40') +
+    geom_line(aes(glu, prop),
+              data = ~select(., prediction) %>% unnest(prediction)) +
+    # must filter glu>0 with position=dodge (already done in data_fit)
+    geom_pointrange(aes(glu, prop, ymin=prop-se, ymax=prop+se, group=date),
+                    position=position_dodge(width=.3), 
+                    data = ~select(., data_fit) %>% unnest(data_fit) ) +
+    geom_pointrange(aes(glu, prop, ymin=prop-se, ymax=prop+se),
+                    position=position_jitter(width=.3, height = 0), 
+                    data = ~select(., data) %>% unnest(data) %>% filter(glu==0)) +
+    scale_x_continuous(trans='log2') +
+    coord_cartesian(xlim=c(1.5, NA)) +
+    NULL
+  
+  plot_grid(
+    .prop_pl +
+      coord_cartesian(xlim=c(1.5, 1.2e3)) +
+      scale_x_continuous(trans="log2", breaks=c(2^c(2, 6, 10))) +
+      scale_y_continuous(breaks=c(0, 1)) +
+      labs(y="prop.\ninduced") +
+      theme(axis.title.x = element_blank(), axis.text.x = element_blank(), 
+            axis.ticks.x = element_blank(), axis.line.x = element_blank()) +
+      NULL, 
+    .gr_pl +
+      coord_cartesian(xlim=c(1.5, 1.2e3), ylim=c(NA, 1.25)) +
+      scale_x_continuous(trans="log2", breaks=c(2^c(2, 6, 10)) ) +
+      guides(col = guide_legend(order = 1, reverse=TRUE),
+             shape = guide_legend()) +
+      theme_cowplot_legend_inset() +
+      NULL,
+    ncol = 1, rel_heights = c(0.6, 2), align = "v"
+  )
+})()
+
+```
+
+
+```{r eval=FALSE}
+# looking at the relative error of growth rate estimation
+myrates_mix %>% 
+  mutate(grate_se = map_dbl(mod, ~.$stderr[2] ),
+         se=grate_se/grate) %>% 
+  group_by(date, condition) %>% 
+  filter(between(grate_se/grate, -1, 2)) %>% 
+  # filter(between(grate_se/grate, quantile(grate_se/grate, .01, na.rm=TRUE), quantile(grate_se/grate, .99, na.rm=TRUE) )) %>% with(range(se))
+  filter(induced==0 | induced==1) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(glu<1000) %>% 
+  ggplot(aes(grate_se/grate, col=factor(induced), group=interaction(date, condition, induced))) +
+  facet_grid(glu~treatment) +
+  geom_freqpoly(aes(y=after_stat(density)), binwidth=.02) +
+  coord_cartesian(xlim=c(-.1, .2)) +
+  scale_colour_discrete(name='', labels=c('0'='uninduced', '1'='induced')) +
+  theme_cowplot() +
+  NULL
+
+```
+
+```{r eval=FALSE}
+myrates_mix %>% 
+  group_by(date, condition) %>% 
+  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  filter(induced==0 | induced==1) %>% 
+  group_by(date, condition, induced) %>% 
+  summarise(
+    gr_mean=mean(grate/log(2)*3600),
+    gr_sd  =sd(grate/log(2)*3600),
+    n=n(),
+  ) %>% 
+  group_by(date, condition) %>% 
+  mutate(prop=n/sum(n)) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  # filter(glu<1000) %>% 
+  # filter(., treatment=='lac002', glu==0, induced==1)
+  ggplot(aes(glu, gr_mean)) +
+  geom_rect(aes(xmin=-Inf, xmax=Inf, ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, group=date), fill="grey10", alpha=.2,
+            data=~filter(., treatment=='lac002', glu==0, induced==1)) +
+  geom_hline(aes(yintercept=gr_mean, group=date), lty="dashed",
+             data=~filter(., treatment=='lac002', glu==0, induced==1)) +
+  geom_pointrange(aes(ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, size=prop),
+                  position=position_dodge2(width=.4), 
+                  data=~filter(., treatment=='none')) +
+  coord_cartesian(ylim=c(NA, 1.4)) +
+  scale_size_continuous(range=c(0.05, .5), guide='none') +
+  # scale_x_continuous(trans='log2') +
+  labs(x="[glucose] (µM)", y="growth rate (dbl/h)") +
+  theme_cowplot() +
+  NULL
+  
+# plotting 1/gr vs 1/glu
+myrates_mix %>%
+  group_by(date, condition) %>%
+  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  filter(induced==0 | induced==1) %>%
+  group_by(date, condition, induced) %>%
+  summarise(
+    gr_mean=mean(grate/log(2)*3600),
+    gr_sd  =sd(grate/log(2)*3600),
+    n=n(),
+  ) %>%
+  group_by(date, condition) %>%
+  mutate(prop=n/sum(n)) %>%
+parse_sugarmix_conds(condition) %>%
+  # filter(glu<1000) %>%
+  filter(between(1/gr_mean, 0, 1000)) %>%
+  ggplot(aes(1/glu, 1/gr_mean, col=factor(induced))) +
+  facet_wrap(~treatment, ncol=1, scales = "free_y") +
+  geom_point(aes(size=prop), position=position_dodge2(width=.4)) +
+  # geom_pointrange(aes(ymin=1/(gr_mean-gr_sd), ymax=1/(gr_mean+gr_sd), size=prop),
+  #                 position=position_dodge2(width=.4)) +
+  # coord_cartesian(ylim=c(NA, 1.4)) +
+  scale_size_continuous(range=c(0.05, .5), guide='none') +
+  # labs(y='growth rate (dbl/h)') +
+  expand_limits(y=0) +
+  scale_colour_discrete(name='', labels=c('0'='uninduced', '1'='induced')) +
+  theme_cowplot() +
+  theme(legend.position = c(0, 1), legend.justification = c(0, 0.7)) +
+  NULL
+
+```
+
+
+## Analysing LacZ-GFP expression
+
+```{r}
+myrates_mix %>% ungroup() %>% 
+  filter(n>10) %>% 
+  mutate(gfp_m = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
+         gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
+         time_birth=map_dbl(data, ~min(.$time_sec)),
+  ) %>% 
+  filter(time_birth > 5 * 3600,
+          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
+  filter(induced<.05 | induced>.95) %>% 
+  mutate(induced=round(induced)) %>% 
+  group_by(date, condition) %>% 
+  mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(induced==1) %>% 
+  filter(n()>10) %>% 
+  ggplot(aes(gfp_m, col=factor(date))) +
+  facet_grid(glu~treatment) +
+  geom_freqpoly(aes(y=after_stat(density), size=prop, group=interaction(date, condition, prop)), bins=100) +
+  # scale_y_continuous(breaks = scales::breaks_extended(n=3)) +
+  # coord_cartesian(xlim=c(-.25, 1.5), ylim=c(0, 3.5)) +
+  scale_size_continuous(range=c(0.05, 1), guide='none') +
+  scale_x_log10() +
+  labs(x='[LacZ-GFP] (AU)') +
+  theme(legend.position = 'top') +
+  NULL
+```
+
+
+### CRP regulation as a function of growth rate
+
+First without correcting for bleaching.
+
+```{r}
+# gfp_c vs grate
+myrates_mix %>% ungroup() %>% 
+  filter(n>10) %>% 
+  mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
+         gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
+         time_birth=map_dbl(data, ~min(.$time_sec)),
+         grate2=grate/log(2)*3600,
+  ) %>% 
+  filter(time_birth > 5 * 3600,
+          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
+  filter(induced<.05 | induced>.95) %>% 
+  mutate(induced=round(induced)) %>% 
+  group_by(date, condition) %>% 
+  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+  filter(induced==1) %>% 
+  filter(n()>10) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment=="iptg") %>% 
+  # lm(gfp_m~grate2, data=.)
+  ggplot(aes(grate2, gfp_m, col=factor(glu))) +
+  geom_point(alpha=.5, stroke=0, size=1) +
+  geom_abline(intercept = 8500, slope=-7000, col='grey20', lty='dotted') +
+  geom_point(stroke=2, size=4,
+             data=~group_by(., date, glu) %>% 
+               summarise(grate2=mean(grate2), gfp_m=exp(mean(log(gfp_m))) ) ) +
+  # coord_cartesian(xlim=c(0, 1.5)) +
+  labs(x="growth rate (dbl/h)", y="[LacZ-GFP] (unbleached)", col="[glu] (µM)") +
+  theme(legend.position=c(.95, .95), legend.justification=c(1, 1)) +
+  NULL
+```
+
+
+Then correcting for belaching assuming constant $q$ and $\lambda$.
+Hence $c = c_u (1+\beta/\lambda)$.
+
+```{r}
+# gfp_c vs grate (bleaching corrected)
+myrates_mix %>% ungroup() %>% 
+  filter(n>10) %>% 
+  mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
+         gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
+         gfp_b = 5.3e-5/5, # Kaiser2018 reports 5.3e-5 / sec for 5x stronger illumination
+         gfp_tot = gfp_m * (1 + gfp_b/grate),
+         time_birth=map_dbl(data, ~min(.$time_sec)),
+         grate2=grate/log(2)*3600,
+  ) %>% 
+  filter(time_birth > 5 * 3600,
+          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
+  filter(induced<.05 | induced>.95) %>% 
+  mutate(induced=round(induced)) %>% 
+  group_by(date, condition) %>% 
+  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+  filter(induced==1) %>% 
+  filter(n()>10) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment=="iptg") %>% 
+  # lm(gfp_m~grate2, data=.)
+  ggplot(aes(grate2, gfp_tot, col=factor(glu))) +
+  geom_point(alpha=.5, stroke=0, size=1) +
+  # stat_smooth(method="lm", fullrange=TRUE, aes(col="all")) +
+  stat_smooth(method="lm", fullrange=TRUE, col="black", #aes(col="mean"),
+             data=~group_by(., date, glu) %>% 
+               summarise(grate2=mean(grate2), gfp_tot=exp(mean(log(gfp_tot), na.rm=T)) ) ) +
+  geom_point(stroke=2, size=4,
+             data=~group_by(., date, glu) %>% 
+               summarise(grate2=mean(grate2), gfp_tot=exp(mean(log(gfp_tot), na.rm=T)) ) ) +
+  coord_cartesian(ylim=c(0, 1.3e4)) +
+  labs(x="growth rate (dbl/h)", y="[LacZ-GFP]", col="[glu] (µM)") +
+  theme(legend.position=c(.95, .95), legend.justification=c(1, 1)) +
+  NULL
+
+(myplots[['sugarmix_crp']] <- 
+    myrates_mix %>% ungroup() %>% 
+    filter(n>10) %>% 
+    mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
+           gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
+           gfp_b = 5.3e-5/5, # Kaiser2018 reports 5.3e-5 / sec for 5x stronger illumination
+           gfp_tot = gfp_m * (1 + gfp_b/grate),
+           time_birth=map_dbl(data, ~min(.$time_sec)),
+           grate2=grate/log(2)*3600,
+    ) %>% 
+    filter(time_birth > 5 * 3600,
+           ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
+    filter(induced<.05 | induced>.95) %>% 
+    mutate(induced=round(induced)) %>% 
+    group_by(date, condition) %>% 
+    filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+    mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+    filter(induced==1) %>% 
+    filter(n()>10) %>% 
+    parse_sugarmix_conds(condition) %>% 
+    filter(treatment=="iptg") %>% 
+    group_by(date, glu) %>% 
+    summarise(grate2_m=mean(grate2), grate2_sd=sd(grate2), 
+              gfp2_m=exp(mean(log(gfp_tot), na.rm=T)),
+              gfp2_min=exp(mean(log(gfp_tot), na.rm=T) - sd(log(gfp_tot), na.rm=T)),
+              gfp2_max=exp(mean(log(gfp_tot), na.rm=T) + sd(log(gfp_tot), na.rm=T)),
+              ) %>%  
+    # lm(gfp_m~grate2, data=.)
+    ungroup() %>% 
+    mutate(glu=factor(glu),
+           glu=factor(glu, labels=paste(levels(glu), 'µM')) ) %>% 
+    ggplot(aes(grate2_m, gfp2_m, col=glu)) +
+    stat_smooth(method="lm", fullrange=TRUE, se=FALSE, col="black") +
+    geom_errorbarh(aes(xmin=grate2_m-grate2_sd, xmax=grate2_m+grate2_sd), height=0, show.legend=F) + 
+    geom_errorbar(aes(ymin=gfp2_min, ymax=gfp2_max), width=0, show.legend=F) + 
+    geom_point(size=4) +
+    scale_color_viridis_d(end = .85) +
+    scale_x_continuous(breaks=c(0, 0.5, 1)) +
+    expand_limits(y=0) +
+    # expand_limits(x=c(0, 1.1), y=0) +
+    labs(x="growth rate (dbl/h)", y="[LacZ-GFP] (FP/µm)", col="[glucose]") +
+    theme_cowplot_legend_inset() +
+    theme(legend.position=c(.95, .95), legend.justification=c(1, 1)) +
+    NULL)
+
+```
+
+```{r eval=FALSE}
+# looking at activity instead.
+myrates_mix %>% ungroup() %>% 
+  filter(n>10) %>% 
+  mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb)),
+         gfp_b = 5.3e-5/5, # Kaiser2018 reports 5.3e-5 / sec for 5x stronger illumination
+         dg_dt  = map_dbl(data, ~(last(.$gfp_nb)-first(.$gfp_nb))/diff(range(.$time_sec))),
+         lac_act = dg_dt + gfp_b*gfp_m,
+         time_birth=map_dbl(data, ~min(.$time_sec)),
+         grate2=grate/log(2)*3600,
+  ) %>% 
+  filter(time_birth > 5 * 3600,
+          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
+  filter(induced<.05 | induced>.95) %>% 
+  mutate(induced=round(induced)) %>% 
+  group_by(date, condition) %>% 
+  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  filter(induced==1) %>% 
+  filter(n()>10) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment=="iptg") %>% 
+  # lm(dg_dt~I(gfp_b*gfp_m), data=.)
+  # lm(dg_dt~poly(lac_act, 2), data=.)
+  ggplot(aes(grate2, lac_act, col=factor(glu))) +
+  geom_point(alpha=.5, stroke=0, size=1) +
+  geom_point(stroke=2, size=4,
+             data=~group_by(., date, glu) %>%
+               summarise(grate2=mean(grate2), lac_act=mean(lac_act)) ) +
+  stat_smooth(aes(group=1), col='black', method='lm', formula='y ~ poly(x, 2)',
+             data=~group_by(., date, glu) %>%
+               summarise(grate2=mean(grate2), lac_act=mean(lac_act)) ) +
+  coord_cartesian(ylim=c(-.1, 1.)) +
+  NULL
+  
+```
+
+## Further analysis
+
+There would be a lot to explore regarding e.g. switching dynamics at the single-cell level...
+
+```{r eval=FALSE}
+myframes %>% 
+  filter(date==20210504 & str_detect(condition, "lac002") | 
+           date==20210506 & condition=="lac002_glu64uM") %>% 
+  filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  # remove frames after touching the exit
+  group_by(id, .add=TRUE) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top) %>% 
+  group_by(date, pos, gl, id) %>%
+  filter(n() > 5) %>% 
+  # # call cell induced as soon as it crossed the 250 threshold
+  # mutate(gfp_nb_raw=gfp_nb) %>% 
+  # fill(gfp_nb, .direction="downup") %>% 
+  filter(!is.na(gfp_nb)) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  group_by(date, condition, pos, gl) %>%
+  nest() %>% group_by(date, condition) %>% slice(1:8) %>%
+  unnest(data) %>%
+  # ggplot(aes(time_sec, gfp_nb/length_um, col=b_rank, group=cell)) +
+  ggplot(aes(time_sec, gfp_nb+100, col=b_rank, group=cell)) +
+  facet_wrap(~conc+date+pos+gl, nrow=8, dir="v", #scales='free_x',
+             labeller = as_labeller(label_value, multi_line=FALSE)) +
+  geom_hline(yintercept=350, lty="dashed") +
+  # geom_vline(xintercept = 5 * 3600, lty='dotted') +
+  geom_line() +
+  scale_x_hours() +
+  scale_y_log10() +
+  coord_cartesian(ylim=c(30, NA)) +
+  # coord_cartesian(ylim=c(3, NA)) +
+  scale_color_viridis_c(limits=c(0, 3), oob=scales::squish, guide=guide_legend(override.aes=list(size=4))) +
+  theme(legend.position = "top") +
+  NULL
+
+ggsave("sugarmix_gfpnb_switches.pdf", width=24, height=16)
+
+
+myframes %>% 
+  filter(date==20210504 & str_detect(condition, "lac002") | 
+           date==20210506 & condition=="lac002_glu64uM") %>% 
+  filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  # remove frames after touching the exit
+  group_by(id, .add=TRUE) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top) %>% 
+  group_by(date, pos, gl, id) %>%
+  filter(n() > 5) %>% 
+  # # call cell induced as soon as it crossed the 250 threshold
+  # mutate(gfp_nb_raw=gfp_nb) %>% 
+  # fill(gfp_nb, .direction="downup") %>% 
+  filter(!is.na(gfp_nb)) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  group_by(date, condition, pos, gl) %>%
+  nest() %>% group_by(date, condition) %>% slice(1:8) %>%
+  unnest(data) %>%
+  # ggplot(aes(time_sec, gfp_nb/length_um, col=b_rank, group=cell)) +
+  ggplot(aes(time_sec, gfp_nb/length_um + 30, col=b_rank, group=cell)) +
+  facet_wrap(~conc+date+pos+gl, nrow=8, dir="v", #scales = 'free_x',
+             labeller = as_labeller(label_value, multi_line=FALSE)) +
+  # geom_hline(yintercept=350, lty="dashed") +
+  # geom_vline(xintercept = 5 * 3600, lty='dotted') +
+  geom_line() +
+  scale_x_hours() +
+  scale_y_log10() +
+  coord_cartesian(ylim=c(3, NA)) +
+  # coord_cartesian(ylim=c(3, NA)) +
+  scale_color_viridis_c(limits=c(0, 3), oob=scales::squish, guide=guide_legend(override.aes=list(size=4))) +
+  theme(legend.position = "top") +
+  NULL
+
+ggsave("sugarmix_gfpc_switches.pdf", width=24, height=16)
+
+```
+
