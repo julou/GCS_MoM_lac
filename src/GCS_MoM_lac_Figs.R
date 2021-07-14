@@ -1,75 +1,56 @@
 
-#####
-(myfigs[[1]] <- function() {
-  pdftools_installed <- require(pdftools)
-  plot_grid(
-    # plots row
-    plot_grid(
-      if (!pdftools_installed) NULL else ggdraw() + draw_image(magick::image_read_pdf(here("material", "lacOperon_lactose.ai.pdf")), 
-                                                               x=.0, y=.07, scale=.94) + # x=-.15, y=.12, scale=1.4) + 
-        theme(),
-      myplots[['naive_lags_hist']] +
-        theme(plot.margin = margin(28, 7, 26, 7)),
-      # myplots[['glyc_mix_violin']] +
-      #   theme(legend.position = 'none',
-      #         plot.margin = margin(t=24),
-      #         axis.title.x = element_blank(),),
-      myplots[['basal_perturb_pre_violin']](-35) +
-        coord_cartesian(ylim=c(-80, 240)) +
-        # labs(y=expression(paste(italic("lac"), " induction\nlag (min)"))) +
-        labs(y="lac induction\nlag (min)") +
-        theme(legend.position = 'top',
-              # legend.justification = c(-10, 0),
-              legend.box.margin = margin(0, 0, 0, -30),
-              plot.margin = margin(7, 7, -17, 7),
-              legend.title = element_text(size=rel(0.6)),
-              legend.text =  element_text(size=rel(0.6)),
-              legend.key.size = unit(0.6, "lines"),
-              axis.title.x = element_blank(),
-        ),
-      nrow=1, labels=c("A", "C", "D"), rel_widths=c(1, 1, 1), align='h'
-    ),
-    myplots[['raw_traces']](1.25),
-    labels=c('', 'B'), ncol=1, rel_heights=c(0.7, 1)
-  )
-})()
+### ### ### ###
+#### FIG 1 ####
 
-save_plot(here("plots", "MoM_lacDilution_fig1.pdf"), myfigs[[1]](),
-          base_height=NULL, base_width=4.75 * 14/8, # 2 cols
-          base_asp = 1.5
+(myplots[['autoactiv_model_induction']] <-
+   tibble(path=list.files(here("material", "Erik_models"), "autoactivating_induc_.*", full.names = TRUE)) %>% 
+   mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
+   unnest(data) %>% 
+   extract(path, c('branch'), ".*/autoactivating_induc_(.+)\\.txt") %>% 
+   ggplot() +
+   geom_line(aes(exp(X1), exp(X2), lty=branch)) +
+   scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
+   scale_y_log10(breaks=c(1e-1, 1e1, 1e3),
+                 # breaks = trans_breaks("log10", function(x) 10^x),
+                 labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+   labs(x='doubling time (h)', y=expression(paste('operon expression ', italic('x')))) +
+   scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dotted')) +
+   theme(legend.position = 'none') +
+   NULL
 )
 
-#####
-(myfigs[[2]] <- plot_grid(
-  myplots[['memory_cdfs']] +
-    theme(axis.title.y = element_text(margin=margin(l=-2, r=4))),
-  myplots[['memory_frac_short']],
-  labels="AUTO", ncol=1, rel_heights=c(1, 1), align='v'
-))
-
-save_plot(here("plots", "MoM_lacDilution_fig2.pdf"), myfigs[[2]],
-          base_height=NULL, base_width=2.25 * 14/8, # 2 cols
-          base_aspect_ratio = 1/1.3
+(myplots[['autoactiv_model_phdiag']] <-
+    tibble(path=list.files(here("material", "Erik_models"), "autoactivating_phasediagram_.*", full.names = TRUE)) %>% 
+    mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
+    unnest(data) %>% 
+    extract(path, c('curve'), ".*/autoactivating_phasediagram_(.+)\\.txt") %>% 
+    (function(.df)
+      ggplot(.df) +
+       geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
+                    data=bind_rows(.df, tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
+                                   tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')) ))) +
+    geom_line(aes(exp(X1), exp(X2), col=curve)) +
+    geom_hline(yintercept = 0.014269, lty='dashed') +
+    annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
+    # annotate("text", x=Inf, y=0, label='uninduced', hjust=1.1, vjust=-1.1) +
+    annotate("text", x=Inf, y=Inf, label='induced', hjust=1.1, vjust=1.5) +
+    scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
+    scale_y_log10(breaks=c(1e-4, 1e-2, 1), expand=c(0, 0),
+                  # breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+    expand_limits(x=.35, y=c(7e-5, 7)) +
+    labs(x='doubling time (h)', y='promoter activity') +
+    # scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dashed')) +
+    scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
+    theme(legend.position = 'none') +
+    NULL
 )
 
-#####
-# myfigs[[3]] <- 
-#   plot_grid(
-#     myplots[['naive_arrest_frac']],
-#     myplots[['lacl_arrest_induction_fracs']],
-#     NULL,
-#     labels="AUTO", ncol=1, rel_heights=c(0.45, 1, 1)
-#   )
-# 
-# save_plot(here("plots", "MoM_lacDilution_fig3.pdf"), myfigs[[3]],
-#           base_height=NULL, base_width=2.25 * 14/8, # 1 col
-#           base_aspect_ratio = 1/2.2
-# )
 
 (myplots[['lac_model_induction']] <-
-   tibble(path=list.files(here("material"), "lac_induc.*", full.names = TRUE)) %>% 
+   tibble(path=list.files(here("material", "Erik_models"), "lac_induc.*", full.names = TRUE)) %>% 
    mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
-   unnest() %>% 
+   unnest(data) %>% 
    extract(path, c('curve', 'branch'), ".*/lac_induc(\\d)_(.+)\\.txt") %>% 
    ggplot() +
    geom_line(aes(exp(X1), exp(X2), lty=branch, col=curve)) +
@@ -86,10 +67,10 @@ save_plot(here("plots", "MoM_lacDilution_fig2.pdf"), myfigs[[2]],
    NULL
 )
 
-(myplots[['lac_model_phase']] <-
-    tibble(path=list.files(here("material"), "lac_phase.*", full.names = TRUE)) %>% 
+(myplots[['lac_model_phdiag']] <-
+    tibble(path=list.files(here("material", "Erik_models"), "lac_phase.*", full.names = TRUE)) %>% 
     mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
-    unnest() %>% 
+    unnest(data) %>% 
     extract(path, c('curve'), ".*/lac_phasediagram_(.+)\\.txt") %>% 
     (function(.df)
       ggplot(.df) +
@@ -112,131 +93,149 @@ save_plot(here("plots", "MoM_lacDilution_fig2.pdf"), myfigs[[2]],
     NULL
 )
 
-
-(myplots[['TMG-Miller-induction']] <- (function() {
-  load('data/TMG_sensitivity_Miller.RData')
-  mylacz %>% 
-    filter(r2>0.8) %>%
-    left_join(myplates, by=c("date", "row", "col")) %>% 
-    filter(!is.na(replicate)) %>%
-    filter(!(media=='M9+0.2gly' & date==20190321),) %>% 
-    left_join(mygcs %>% filter(!is.na(replicate)) %>% filter(elapsed>-2*3600) %>% 
-                group_by(date, media, replicate, row) %>% filter(sum(od>0) > 2) %>% nest() %>% 
-                mutate(mod_gc=map(data, ~lm(log(od)~elapsed, data=.)),
-                       gr=map_dbl(mod_gc, ~coef(.)[2]), gr_se=map_dbl(mod_gc, ~summary(.)$coefficients[2,2]),
-                       od_log=map_dbl(mod_gc, ~predict(., data.frame(elapsed=5*60)) ), od=exp(od_log),
-                ), by=c("date", "row", "media", "replicate") ) %>% 
-    mutate(activity=1000*slope / (od*3) / 2 * gr*3600/log(2),
-           media=fct_relevel(media, 'M9+0.2ara+CA'),
-           media=fct_recode(media, '0.2% arabinose+CA'='M9+0.2ara+CA', '0.2% arabinose'='M9+0.2ara', '0.2% glycerol'='M9+0.2gly', '0.2% mannose'='M9+0.2man', '0.2% pyruvate'='M9+0.2pyr'),
-           media=fct_rev(media)) %>%
+(myplots[['twocmps_model_phdiag']] <-
+    tibble(path=list.files(here("material", "Erik_models"), "twocomp_phasediagram_.*", full.names = TRUE)) %>% 
+    mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
+    unnest(data) %>% 
+    extract(path, c('curve'), ".*/twocomp_phasediagram_(.+)\\.txt") %>% 
+    # with(range(X1))
     (function(.df)
-    {
-      .fits <- .df %>% 
-        filter(!(media=='M9+0.2ara' & tmg==1000),
-               !(media=='M9+0.2gly' & tmg==1000),
-               !(media=='M9+0.2man' & tmg>200),
-               !(media=='M9+0.2pyr' & tmg>200)) %>% 
-        mutate(tmg=ifelse(tmg==0, .1, tmg)) %>%
-        group_by(media) %>% nest() %>%
-        # filter(!media %in% c('M9+0.2ara', 'M9+0.2man')) %>%
-        mutate(
-          #k_ini = c('M9+0.2ara+CA'=250, 'M9+0.2ara'=100, 'M9+0.2gly'=10, 'M9+0.2man'=5, 'M9+0.2pyr'=5)[media],
-          mod=map(data, function(.d) {#browser();
-            nls(activity~hill_fn(tmg, f, k, m, b), data=.d,
-                algorithm='port', control=nls.control(maxiter = 1e3, minFactor = 1/2^15), 
-                start=list(f=200, k=100, m=2.5, b=.002), 
-                lower=list(f=20, k=3, m=2, b=1.8e-3),
-                upper=list(f=2000, k=800, m=4, b=2.2e-3),
-            ) }),
-        )
-      # # tweak from https://stackoverflow.com/a/31688907
-      # se <- function(x) sd(x)/sqrt(length(x))
-      # maxf <- function(dati) {mean(dati) + se(dati)}
-      # minf <- function(dati) {max(10e-8, mean(dati) - se(dati))}
-      
-      # browser()
-      .df %>% 
-        mutate(tmg=ifelse(tmg==0, 1e-1, tmg)) %>% 
-        ggplot(aes(tmg, activity, col=media)) +
-        # geom_point(aes(shape=replicate)) +
-        
-        # stat_function(aes(col='M9+0.2ara+CA'), fun=hill_fn_log, args=filter(.fits, media=='M9+0.2ara+CA') %>% with(as.list(coef(mod[[1]]))) ) +
-        # stat_function(aes(col='M9+0.2ara'), fun=hill_fn_log, args=filter(.fits, media=='M9+0.2ara') %>% with(as.list(coef(mod[[1]]))) ) +
-        # stat_function(aes(col='M9+0.2gly'), fun=hill_fn_log, args=filter(.fits, media=='M9+0.2gly') %>% with(as.list(coef(mod[[1]]))) ) +
-        # stat_function(aes(col='M9+0.2man'), fun=hill_fn_log, args=filter(.fits, media=='M9+0.2man') %>% with(as.list(coef(mod[[1]]))) ) +
-        # stat_function(aes(col='M9+0.2pyr'), fun=hill_fn_log, args=filter(.fits, media=='M9+0.2pyr') %>% with(as.list(coef(mod[[1]]))) ) +
-        
-        geom_line(data=.fits %>% group_by(media) %>% mutate(data=list(data.frame(tmg=10^seq(-1, 3, length.out = 101))),
-                                                            data=map2(mod, data, function(.m, .d) mutate(.d, activity=predict(.m, .d) )) ) %>% unnest(data)
-        ) +
-        stat_summary(fun.args=list(na.rm=TRUE), size=.4) +
-        scale_x_log10(breaks=c(1, 10, 100)) +
-        # dirty hack!
-        coord_cartesian(xlim=c(.098, 1500), expand = 0) +
-        # expand_limits(x=0.02) +
-        scale_y_log10(breaks=c(0.01, 0.1, 1)) +
-        labs(x='TMG concentration (µM)', y=expression(paste('p'['lac'],' activity (AU)')) ) +
-        NULL
-    } )
-})()
-) +
-  guides(col=guide_legend(nrow=2, byrow=TRUE)) +
-  theme(legend.position = 'top')
-
-
-(myplots[['TMG-Miller-conc-dt']] <- (function() {
-  load('data/TMG_sensitivity_Miller.RData')
-  mylacz %>% 
-    filter(r2>0.8) %>%
-    left_join(myplates, by=c("date", "row", "col")) %>% 
-    filter(!is.na(replicate)) %>%
-    filter(!(media=='M9+0.2gly' & date==20190321),) %>% 
-    left_join(mygcs %>% filter(!is.na(replicate)) %>% filter(elapsed>-2*3600) %>% 
-                group_by(date, media, replicate, row) %>% filter(sum(od>0) > 2) %>% nest() %>% 
-                mutate(mod_gc=map(data, ~lm(log(od)~elapsed, data=.)),
-                       gr=map_dbl(mod_gc, ~coef(.)[2]), gr_se=map_dbl(mod_gc, ~summary(.)$coefficients[2,2]),
-                       od_log=map_dbl(mod_gc, ~predict(., data.frame(elapsed=5*60)) ), od=exp(od_log),
-                ), by=c("date", "row", "media", "replicate") ) %>% 
-    mutate(activity=1000*slope / (od*3) / 2 * gr*3600/log(2)) %>%
-    filter(!(media=='M9+0.2ara' & tmg==1000),
-           !(media=='M9+0.2gly' & tmg==1000),
-           !(media=='M9+0.2man' & tmg>200),
-           !(media=='M9+0.2pyr' & tmg>200)) %>% 
-    mutate(tmg=ifelse(tmg==0, .1, tmg)) %>%
-    group_by(media) %>% nest() %>%
-    # filter(!media %in% c('M9+0.2ara', 'M9+0.2man')) %>%
-    mutate(
-      #k_ini = c('M9+0.2ara+CA'=250, 'M9+0.2ara'=100, 'M9+0.2gly'=10, 'M9+0.2man'=5, 'M9+0.2pyr'=5)[media],
-      mod=map(data, function(.d) {#browser();
-        nls(activity~hill_fn(tmg, f, k, m, b), data=.d,
-            algorithm='port', control=nls.control(maxiter = 1e3, minFactor = 1/2^15), 
-            start=list(f=200, k=100, m=2.5, b=.002), 
-            lower=list(f=20, k=3, m=2, b=1.8e-3),
-            upper=list(f=2000, k=800, m=4, b=2.2e-3),
-        ) }),
-    ) %>% 
-    mutate(k = map_dbl(mod, ~coef(.)['k'])) %>% 
-    left_join(mygcs %>% filter(!is.na(replicate)) %>% filter(elapsed>-2*3600, row=='H') %>% 
-                group_by(date, media, replicate, row) %>% filter(sum(od>0) > 2) %>% nest() %>% 
-                mutate(mod_gc=map(data, ~lm(log(od)~elapsed, data=.)),
-                       gr=map_dbl(mod_gc, ~coef(.)[2]), gr_se=map_dbl(mod_gc, ~summary(.)$coefficients[2,2]),
-                ) %>% group_by(media) %>% summarise(gr=mean(gr) *3600/log(2)) ) %>% 
-    mutate(media=fct_relevel(media, 'M9+0.2ara+CA'),
-           media=fct_recode(media, '0.2% arabinose+CA'='M9+0.2ara+CA', '0.2% arabinose'='M9+0.2ara', '0.2% glycerol'='M9+0.2gly', '0.2% mannose'='M9+0.2man', '0.2% pyruvate'='M9+0.2pyr'),
-           media=fct_rev(media)) %>%
-    ggplot(aes(1/gr, k, col=media)) +
-    stat_smooth(aes(group=1), col='black', alpha=.1, method='lm') +
-    geom_point(size=3) +
-    # scale_x_continuous(trans='log10', breaks=c(.4, .7, 1)) +
-    scale_x_continuous(trans='log10', breaks=c(1, 2, 3)) +
-    scale_y_continuous(trans='log10', breaks=c(10, 50, 100)) +
-    labs(x='doubling time (h)', y='critical inducer concentration (µM)') +
-    # theme(legend.position = c(1, 0), legend.justification = c(1.05, -0.05)) +
+      ggplot(.df) +
+       geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
+                    data=bind_rows(.df, tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
+                                   tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')) ))) +
+    geom_line(aes(exp(X1), exp(X2), col=curve)) +
+    # geom_hline(yintercept = 0.014269, lty='dashed') +
+    annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
+    # annotate("text", x=Inf, y=0, label='uninduced', hjust=1.1, vjust=-1.1) +
+    annotate("text", x=Inf, y=Inf, label='induced', hjust=1.1, vjust=1.5) +
+    scale_x_log10(breaks=c(1, 24, 1000), expand=c(0, 0)) +
+    scale_y_log10(breaks=c(1e-3, 1, 1e3), expand=c(0, 0),
+                  # breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+    expand_limits(x=.15, y=c(2e-6, 7)) +
+    # labs(x='doubling time (h)', y=expression(paste('signal strength ', italic('s'), '/', italic('s[0]')))) +
+    labs(x='doubling time (h)', y=expression(paste('signal strength ', s / s[0] ))) +
+    scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
     theme(legend.position = 'none') +
     NULL
-})()
 )
+
+(myfigs[[1]] <- plot_grid(
+  # plots row
+  plot_grid(
+    NULL, NULL, NULL,
+    nrow=1, labels=c("A", "C", "E"), rel_widths=c(1, 1, 1)
+  ),
+  plot_grid(
+    myplots[['autoactiv_model_phdiag']], 
+    myplots[['lac_model_phdiag']], 
+    myplots[['twocmps_model_phdiag']], 
+    nrow=1, labels=c("B", "D", "F"), rel_widths=c(1, 1, 1)
+  ),
+  ncol=1, rel_heights=c(1, 1)
+) )
+
+save_plot(here("plots", "figs", "GCS_MoM_lac_fig1.pdf"), myfigs[[1]],
+          base_height=NULL, base_width=4.75 * 14/8, # 2 cols
+          base_asp = 1.95
+)
+
+### ### ### ###
+#### FIG 2 ####
+(function() {
+  # load TMG plots into global env
+  load('data/TMG_sensitivity_Miller_plots.RData')
+  myplots_tmg <<- myplots
+})()
+
+(myfigs[[2]] <- plot_grid(
+  # LEFT COL
+  plot_grid(
+    myplots_tmg[['GCS_sugars_indct_subset']] +
+      theme(legend.position = 'none') +
+      # theme(legend.position = c(1, 0), legend.justification = c(1, 0)) +
+      # theme_cowplot_legend_inset() +
+      # coord_cartesian(xlim=c(.2, NA), ylim=c(.5, 1000)) +
+      labs(title=" ", y=expression('p'['lac']*' activity (MU/h)        ')) +
+      NULL,
+    myplots_tmg[['GCS_sugars_subset']] + 
+      # scale_color_sugars(guide=guide_legend(reverse=TRUE)) +
+      theme_cowplot_legend_inset() +
+      theme(legend.position = 'right') +
+      labs(y='critical [TMG] (µM)    ') +
+      NULL,
+    ncol=1, rel_heights = c(0.8, 1), labels = c("A", "B"), align="v", axis="l"
+  ),
+  
+  # RIGHT COL
+  plot_grid(
+    NULL,
+    
+    plot_grid(
+      myplots[['lacl_gly_mainfig']](igr, 
+                                    condition %in% c("switch_lactulose_TMG20", "switch_glycerol_TMG20"),
+                                    time_bin %in% c("[-1,0]", "(0,1]", "(7,8]")) +
+        geom_rect(xmin=-Inf, xmax=1.5, ymin=-Inf, ymax=Inf, fill='black', alpha=.03) +
+        scale_colour_manual(values=c("non induced"="gray25", "induced"=qual_cols[3], "non growing"=qual_cols[1], "growing"=qual_cols[2]),
+                            breaks=c("non induced", "induced", "growing", "non growing"),
+                            guide=guide_legend(ncol=2)) +
+        scale_y_continuous(breaks=c(0, 0.5, 1)) +
+        coord_cartesian(ylim=c(-.1, 1.1)) +
+        labs(x=NULL, y="growth  \nrate (dbl/h)  ") +
+        theme(strip.text.x = element_blank(), legend.position = "none", 
+              axis.text.x = element_blank(), # axis.title.x = element_blank(), 
+              panel.spacing.x = unit(2, "lines"),
+              # axis.title.y = element_text(margin=margin(t=30)), 
+              plot.margin = margin(7, 7, 2, 7),
+        ) +
+        NULL,
+      
+      myplots[['lacl_gly_mainfig']](gfp_c,
+                                    condition %in% c("switch_lactulose_TMG20", "switch_glycerol_TMG20"),
+                                    time_bin %in% c("[-1,0]", "(0,1]", "(7,8]")) +
+        geom_rect(xmin=-Inf, xmax=1.5, ymin=-Inf, ymax=Inf, fill='black', alpha=.03) +
+        scale_colour_manual(values=c("non induced"="gray25", "induced"=qual_cols[3], "non growing"=qual_cols[1], "growing"=qual_cols[2]),
+                            limits=c("non induced", "induced", "growing", "non growing"), 
+                            # guide=guide_legend(ncol=2)
+                            ) +
+        coord_cartesian(ylim=c(NA, 1400)) +
+        labs(y="[LacZ-GFP]          \n(/µm)          ") +
+        theme_cowplot_legend_inset() +
+        theme(strip.text.x = element_blank(), legend.position = "bottom", 
+              panel.spacing.x = unit(2, "lines"),
+              # axis.title.y = element_text(margin=margin(t=50)),
+              
+              legend.margin = margin(t=-12, b=-4, r=50),
+              plot.margin = margin(0, 7, 5, 7),
+        ) +
+        NULL,
+      
+      ncol=1, rel_heights = c(.4, .6), align = "v" ), 
+    
+    ncol=1, rel_heights = c(1, 1), labels = c("C", "D")
+  ),
+  nrow = 1, rel_widths = c(1, 1.1)
+) )
+
+save_plot(here("plots", "figs", "GCS_MoM_lac_fig2.pdf"), myfigs[[2]],
+          base_height=NULL, base_width=4.75 * 14/8, # 2 cols
+          base_asp = 1.95 )
+
+
+#####
+# myfigs[[3]] <- 
+#   plot_grid(
+#     myplots[['naive_arrest_frac']],
+#     myplots[['lacl_arrest_induction_fracs']],
+#     NULL,
+#     labels="AUTO", ncol=1, rel_heights=c(0.45, 1, 1)
+#   )
+# 
+# save_plot(here("plots", "MoM_lacDilution_fig3.pdf"), myfigs[[3]],
+#           base_height=NULL, base_width=2.25 * 14/8, # 1 col
+#           base_aspect_ratio = 1/2.2
+# )
 
 ############
 (myfigs[[3]] <- function() { # local envt
@@ -305,78 +304,6 @@ save_plot(here("plots", "MoM_lacDilution_fig3.pdf"), myfigs[[3]](),
 
 
 ####
-(myplots[['autoactiv_model_induction']] <-
-    tibble(path=list.files(here("material"), "autoactivating_induc_.*", full.names = TRUE)) %>% 
-    mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
-    unnest() %>% 
-    extract(path, c('branch'), ".*/autoactivating_induc_(.+)\\.txt") %>% 
-    ggplot() +
-    geom_line(aes(exp(X1), exp(X2), lty=branch)) +
-    scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
-    scale_y_log10(breaks=c(1e-1, 1e1, 1e3),
-                  # breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    labs(x='doubling time (h)', y=expression(paste('operon expression ', italic('x')))) +
-    scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dotted')) +
-    theme(legend.position = 'none') +
-    NULL
-)
-
-(myplots[['autoactiv_model_phase']] <-
-    tibble(path=list.files(here("material"), "autoactivating_phasediagram_.*", full.names = TRUE)) %>% 
-    mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
-    unnest() %>% 
-    extract(path, c('curve'), ".*/autoactivating_phasediagram_(.+)\\.txt") %>% 
-    (function(.df)
-      ggplot(.df) +
-       geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
-                    data=bind_rows(.df, tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
-                                   tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')) ))) +
-    geom_line(aes(exp(X1), exp(X2), col=curve)) +
-    geom_hline(yintercept = 0.014269, lty='dashed') +
-    # annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
-    annotate("text", x=Inf, y=0, label='uninduced', hjust=1.1, vjust=-1.1) +
-    annotate("text", x=Inf, y=Inf, label='induced', hjust=1.1, vjust=1.5) +
-    scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
-    scale_y_log10(breaks=c(1e-4, 1e-2, 1), expand=c(0, 0),
-                  # breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    expand_limits(x=.35, y=c(7e-5, 7)) +
-    labs(x='doubling time (h)', y='promoter activity') +
-    # scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dashed')) +
-    scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
-    theme(legend.position = 'none') +
-    NULL
-)
-
-
-(myplots[['twocmps_model_phase']] <-
-    tibble(path=list.files(here("material"), "twocomp_phasediagram_.*", full.names = TRUE)) %>% 
-    mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
-    unnest() %>% 
-    extract(path, c('curve'), ".*/twocomp_phasediagram_(.+)\\.txt") %>% 
-    # with(range(X1))
-    (function(.df)
-      ggplot(.df) +
-       geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
-                    data=bind_rows(.df, tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
-                                   tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')) ))) +
-    geom_line(aes(exp(X1), exp(X2), col=curve)) +
-    # geom_hline(yintercept = 0.014269, lty='dashed') +
-    # annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
-    annotate("text", x=Inf, y=0, label='uninduced', hjust=1.1, vjust=-1.1) +
-    annotate("text", x=Inf, y=Inf, label='induced', hjust=1.1, vjust=1.5) +
-    scale_x_log10(breaks=c(1, 24, 1000), expand=c(0, 0)) +
-    scale_y_log10(breaks=c(1e-3, 1, 1e3), expand=c(0, 0),
-                  # breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    expand_limits(x=.15, y=c(2e-6, 7)) +
-    # labs(x='doubling time (h)', y=expression(paste('signal strength ', italic('s'), '/', italic('s[0]')))) +
-    labs(x='doubling time (h)', y=expression(paste('signal strength ', s / s[0] ))) +
-    scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
-    theme(legend.position = 'none') +
-    NULL
-)
 
 # (myfigs[[4]] <- function(){
 #   pdftools_installed <- require(pdftools)

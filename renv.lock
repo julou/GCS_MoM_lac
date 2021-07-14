@@ -352,13 +352,6 @@
       "Repository": "CRAN",
       "Hash": "780713bd2f53156fae001443dcdbdcd5"
     },
-    "gdtools": {
-      "Package": "gdtools",
-      "Version": "0.2.2",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "38f4026c0d09edb3a4474685cef68342"
-    },
     "generics": {
       "Package": "generics",
       "Version": "0.0.2",
@@ -938,10 +931,10 @@
     },
     "svglite": {
       "Package": "svglite",
-      "Version": "1.2.3",
+      "Version": "2.0.0",
       "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "ed61a9516ba30e7ebe72855931007255"
+      "Repository": "RSPM",
+      "Hash": "8fb6188960bf0f90996ce52f9c2106ac"
     },
     "sys": {
       "Package": "sys",
@@ -952,10 +945,10 @@
     },
     "systemfonts": {
       "Package": "systemfonts",
-      "Version": "0.2.2",
+      "Version": "1.0.2",
       "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "dc5302e017a8bb52099bf1838619a899"
+      "Repository": "RSPM",
+      "Hash": "f2e17ba09737e2e7e2ec40fc1f9b6e08"
     },
     "testthat": {
       "Package": "testthat",
@@ -1036,9 +1029,15 @@
     },
     "vngMoM": {
       "Package": "vngMoM",
-      "Version": "0.1.5",
-      "Source": "unknown",
-      "Hash": "96235ceb0ecc00cbe0f8284104d2a3f6"
+      "Version": "0.1.6",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "vngMoM",
+      "RemoteUsername": "vanNimwegenLab",
+      "RemoteRef": "master",
+      "RemoteSha": "a86c96d97a46ef9b27a7f092ec8a9561e4073c34",
+      "Hash": "142e189d481d740e8b3019d33c59ee1b"
     },
     "warp": {
       "Package": "warp",

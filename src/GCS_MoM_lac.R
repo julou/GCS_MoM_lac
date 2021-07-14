@@ -51,39 +51,9 @@ myconditions <- list(
   #      paths=c("./data_MoM_ms/MG1655_glu_lac")),
   # list(condition='glucose', duration=1560, dt=180, medium='glucose',
   #      paths=c("./data_MoM_ms/glucose")),
-  # list(condition='lactose', duration=1560, dt=180, medium='lactose',
-  #      paths=c("./data_MoM_ms/lactose")),
-  # 
-  # # GLC / LAC SWITCH (MEMORY)
-  # list(condition='switch_04h',
-  #      duration=c(360, 240, 240, 240, 240, 240), dt=180,
-  #      medium=c('glucose', 'lactose', 'glucose', 'lactose', 'glucose', 'lactose'),
-  #      paths=c("./data_MoM_ms/glu_lac_switch")),
-  # list(condition='switch_06h',
-  #      duration=c(360, 240, 360, 240, 360, 240), dt=180, 
-  #      medium=c('glucose', 'lactose', 'glucose', 'lactose', 'glucose', 'lactose'),
-  #      paths=c("./data_thomas/20151204/20151204_switch6h_curated")),
-  # list(condition='switch_08h', 
-  #      duration=c(360, 240, 480, 240, 480, 240), dt=180, 
-  #      medium=c('glucose', 'lactose', 'glucose', 'lactose', 'glucose', 'lactose'),
-  #      paths=c("./data_thomas/20151218/20151218_switch8h_curated", "./data_thomas/20180206/20180206_glu_lac_switch8h_curated/")),
-  # list(condition='switch_12h', duration=c(360, 240, 720, 360), dt=180, 
-  #      medium=c('glucose', 'lactose', 'glucose', 'lactose'),
-  #      paths=c("./data_thomas/20180207/20180207_glu_lac_switch12h_curated/", "./data_thomas/20180216/20180216_glu_lac_switch12h_curated/")),
-  # list(condition='switch_16h', duration=c(360, 240, 960, 360), dt=180, 
-  #      medium=c('glucose', 'lactose', 'glucose', 'lactose'),
-  #      paths=c("./data_thomas/20160912/20160912_curated")),
-  # list(condition='switch_20h', duration=c(360, 240, 1200, 360), dt=180, 
-  #      medium=c('glucose', 'lactose', 'glucose', 'lactose'),
-  #      paths=c("./data_thomas/20161014/20161014_curated")),
-  # list(condition='switch_24h', duration=c(360, 240, 1440, 360), dt=180, 
-  #      medium=c('glucose', 'lactose', 'glucose', 'lactose'),
-  #      paths=c("./data_thomas/20161007/20161007_curated", "./data_thomas/20180313/20180313_glu_lac_switch24h_curated/")),
-  # # paths=c("./data_thomas/20161007/20161007_curated")),
-  # list(condition='switch_12h_old', duration=c(240, 240, 720, 360), dt=180,
-  #      medium=c('glucose', 'lactose', 'glucose', 'lactose'),
-  #      paths=c("./data_thomas/20160526/20160526_curated")),
-  
+  list(condition='lactose', duration=1560, dt=180, medium='lactose',
+       paths=c("./data_Kaiser2018/lactose")),
+
   # WITH/WITHOUT GROWTH ARREST
   list(condition='switch_lactulose_TMG20_stdIllum', duration=c(480, 720), dt=360, 
        medium=c('glycerol', 'lactulose+TMG'),
@@ -103,24 +73,62 @@ myconditions <- list(
        paths=c("./data_thomas/20180712/20180712_glyc_glycTMG20uM_curated/")),
   
   # SUGAR MIXTURES
-  list(condition='glu2uM', duration=840, dt=180, medium='glucose',
-       paths=c("./data_theo/20210122/20210122_curated/20210122_S0/", "./data_theo/20210305/20210305_curated/20210305_S0/")),
-  list(condition='lac002', duration=840, dt=180, medium='lactose',
-       paths=c("./data_theo/20210122/20210122_curated/20210122_S1/", "./data_theo/20210305/20210305_curated/20210305_S1/")),
-  list(condition='lac002_glu2uM', duration=840, dt=180, medium='glucose+lactose',
-       paths=c("./data_theo/20210122/20210122_curated/20210122_S2/", "./data_theo/20210305/20210305_curated/20210305_S2/")),
-  list(condition='lac002_glu4uM', duration=840, dt=180, medium='glucose+lactose',
-       paths=c("./data_theo/20210122/20210122_curated/20210122_S3/", "./data_theo/20210305/20210305_curated/20210305_S3/")),
-  list(condition='lac002_glu8uM', duration=840, dt=180, medium='glucose+lactose',
-       paths=c("./data_theo/20210122/20210122_curated/20210122_S4/", "./data_theo/20210305/20210305_curated/20210305_S4/")),
-  list(condition='lac002_glu16uM', duration=840, dt=180, medium='glucose+lactose',
-       paths=c("./data_theo/20210122/20210122_curated/20210122_S5/", "./data_theo/20210305/20210305_curated/20210305_S5/")),
-  list(condition='lac002_glu32uM', duration=840, dt=180, medium='glucose+lactose',
-       paths=c("./data_theo/20210122/20210122_curated/20210122_S6/", "./data_theo/20210305/20210305_curated/20210305_S6/")),
-  list(condition='lac002_glu002', duration=840, dt=180, medium='glucose+lactose',
-       paths=c("./data_theo/20210122/20210122_curated/20210122_S7/", "./data_theo/20210305/20210305_curated/20210305_S7/"))
+  list(condition='M9zero', duration=48*60, dt=180, medium='M9zero',
+       paths=c("./data_theo/20210708/20210708_curated/20210708_S5")),
+
+  list(condition='glu2uM', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210122/20210122_curated/20210122_S0/", "./data_theo/20210305/20210305_curated/20210305_S0/", 
+               "./data_theo/20210513/20210513_curated/20210513_S0/")),
+  list(condition='glu4uM', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210513/20210513_curated/20210513_S1/")),
+  list(condition='glu8uM', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210513/20210513_curated/20210513_S2/", "./data_theo/20210708/20210708_curated/20210708_S0")),
+  list(condition='glu16uM', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210513/20210513_curated/20210513_S3/")),
+  list(condition='glu32uM', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210513/20210513_curated/20210513_S4/", "./data_theo/20210708/20210708_curated/20210708_S1")),
+  list(condition='glu64uM', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210513/20210513_curated/20210513_S5/")),
+  list(condition='glu128uM', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210708/20210708_curated/20210708_S2")),
+  list(condition='glu002', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210708/20210708_curated/20210708_S4")),
+  list(condition='glu02', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210708/20210708_curated/20210708_S6")),
   
-  )
+  list(condition='lac002', duration=48*60, dt=180, medium='lactose',
+       paths=c("./data_theo/20210122/20210122_curated/20210122_S1/", "./data_theo/20210305/20210305_curated/20210305_S1/")),
+  list(condition='lac002_glu2uM', duration=48*60, dt=180, medium='glucose+lactose',
+       paths=c("./data_theo/20210122/20210122_curated/20210122_S2/", "./data_theo/20210305/20210305_curated/20210305_S2/")),
+  list(condition='lac002_glu4uM', duration=48*60, dt=180, medium='glucose+lactose',
+       paths=c("./data_theo/20210122/20210122_curated/20210122_S3/", "./data_theo/20210305/20210305_curated/20210305_S3/")),
+  list(condition='lac002_glu8uM', duration=48*60, dt=180, medium='glucose+lactose',
+       paths=c("./data_theo/20210122/20210122_curated/20210122_S4/", "./data_theo/20210305/20210305_curated/20210305_S4/")),
+  list(condition='lac002_glu16uM', duration=48*60, dt=180, medium='glucose+lactose',
+       paths=c("./data_theo/20210122/20210122_curated/20210122_S5/", "./data_theo/20210305/20210305_curated/20210305_S5/", 
+               "./data_theo/20210504/20210504_curated/20210504_S0/")),
+  list(condition='lac002_glu32uM', duration=48*60, dt=180, medium='glucose+lactose',
+       paths=c("./data_theo/20210122/20210122_curated/20210122_S6/", "./data_theo/20210305/20210305_curated/20210305_S6/",
+               "./data_theo/20210504/20210504_curated/20210504_S1/")),
+  list(condition='lac002_glu64uM', duration=48*60, dt=180, medium='glucose+lactose',
+       paths=c("./data_theo/20210504/20210504_curated/20210504_S2/", "./data_theo/20210506/20210506_curated/20210506_S2/")),
+  list(condition='lac002_glu128uM', duration=48*60, dt=180, medium='glucose+lactose',
+       paths=c("./data_theo/20210504/20210504_curated/20210504_S3/", "./data_theo/20210506/20210506_curated/20210506_S3/", 
+               "./data_theo/20210708/20210708_curated/20210708_S7")),
+  list(condition='lac002_glu002', duration=48*60, dt=180, medium='glucose+lactose',
+       paths=c("./data_theo/20210122/20210122_curated/20210122_S7/", "./data_theo/20210305/20210305_curated/20210305_S7/")),
+  
+  list(condition='glu2uM+IPTG', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210504/20210504_curated/20210504_S4/", "./data_theo/20210506/20210506_curated/20210506_S4/", 
+               "./data_theo/20210513/20210513_curated/20210513_S6/")),
+  list(condition='glu8uM+IPTG', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210504/20210504_curated/20210504_S5/", "./data_theo/20210506/20210506_curated/20210506_S5/")),
+  list(condition='glu32uM+IPTG', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210504/20210504_curated/20210504_S6/", "./data_theo/20210506/20210506_curated/20210506_S6/")),
+  list(condition='glu128uM+IPTG', duration=48*60, dt=180, medium='glucose',
+       paths=c("./data_theo/20210506/20210506_curated/20210506_S7/", "./data_theo/20210513/20210513_curated/20210513_S7/"))
+  
+)
 
 # LOAD MoMA DATA ####
 # find raw data files from myconditions and store them in a dataframe
@@ -216,7 +224,8 @@ myframes <- myframes %>% ungroup() %>% mutate(
   fluo_amplitude=fluo_amplitude * ifelse(date==20181008 & pos %in% 0:4 & between(time_sec/3600, 8, 20-6/60), 5, 1),
   fluo_amplitude=fluo_amplitude * ifelse(date==20181009 & pos %in% c(0,2,4,6,8) & between(time_sec/3600, 8, 20-6/60), 5, 1),
   fluo_amplitude=fluo_amplitude * ifelse(date==20181024 & pos %in% c(0:2,4,6,8) & between(time_sec/3600, 8, 20-6/60), 5, 1),
-  fluo_amplitude = ifelse(frame %% 3, NA, fluo_amplitude),
+  
+  fluo_amplitude=ifelse(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)") & frame %% 3, NA, fluo_amplitude),
     
   fluogfp_amplitude = fluo_amplitude - autofluo_predict(length_um)
 )
@@ -285,12 +294,11 @@ knitr::opts_chunk$set(
 rmarkdown::render_site('./src/GCS_MoM_lac_Lags_Estimation.Rmd')
 
 # DISCARD SOME DATASETS
-rmarkdown::render_site('./src/MoM_lacDilution_Controls.Rmd')
+rmarkdown::render_site('./src/GCS_MoM_lac_Controls.Rmd')
 
 # rmarkdown::render_site('./src/index.Rmd')
-rmarkdown::render_site('./src/MoM_lacDilution_Native.Rmd')
-rmarkdown::render_site('./src/MoM_lacDilution_PerturbRepressed.Rmd')
-rmarkdown::render_site('./src/MoM_lacDilution_Sensitivity.Rmd')
+# rmarkdown::render_site('./src/GCS_MoM_lac_Native.Rmd')
+rmarkdown::render_site('./src/GCS_MoM_lac_Sensitivity.Rmd')
 
 
 # RENDER ARTICLE FIGURES ####
