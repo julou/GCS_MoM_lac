@@ -9,27 +9,9 @@ output:
 author: Thomas Julou
 
 navbar:
-  title: "Single-cell analysis of the glucose/lactose diauxic shift"
+  title: "Growth-coupled sensitivity of the *lac* operon in *E. coli*"
   left:
-    - text: "Prerequisites"
-      icon: fa-gear
-      menu:
-        - text: "GFP Estimation"
-          href: MoM_lacDilution_GFP_Estimation.html
-        - text: "Lags estimation"
-          href: MoM_lacDilution_Lags_Estimation.html
-#        - text: "Heritability estimation"
-#          href: MoM_lacDilution_Heritability_Estimation.html
-        - text: "---------"
-        - text: "Controls"
-          href: MoM_lacDilution_Controls.html
-    - text: "Analysis"
-      icon: fa-flask
-      menu:
-        - text: "Induction and memory of the native *lac* operon"
-          href: MoM_lacDilution_Native.html
-        - text: "Perturbations of the repressed lac operon expression"
-          href: MoM_lacDilution_PerturbRepressed.html
-        - text: "Sensitivity to inducers"
-          href: MoM_lacDilution_Sensitivity.html
-
+    - text: "Induction during transient growth arrest"
+      href: GCS_MoM_lac_Transient_Arrest.html
+    - text: "Induction in sugar mixtures"
+      href: GCS_MoM_lac_SugarsMix.html

@@ -11,11 +11,11 @@ suppressPackageStartupMessages({
   library(ggCustomTJ)
 })
 
-theme_set(theme_cowplot() + theme(title = element_text(size = rel(1/1.14)),
+theme_set(theme_cowplot() + theme(axis.title = element_text(size = rel(12/14)),
                                   strip.text.x=element_text(margin=margin(t=1, b=2)),
                                   strip.text.y=element_text(margin=margin(l=2, r=1))) )
-theme_cowplot_legend_inset <- function(.rel=0.7) theme(legend.title=element_text(size=rel(.rel), face='bold'),
-                                                       legend.text=element_text(size=rel(.rel)))
+theme_cowplot_legend_inset <- function(.rel=12/14) theme(legend.title=element_text(size=rel(.rel), face='bold'),
+                                                         legend.text = element_text(size=rel(11/14)), ) # relative to the theme text size
 
 # set a parallel environment to run multidplyr (ALL packages explicitely loaded before will be loaded too)
 library(multidplyr)
@@ -241,17 +241,6 @@ myframes <- myframes %>% ungroup() %>%
 
 # experiments to be discarded as identified by controls
 discarded_dates <- c(
-  # # slow growth in initial condition
-  # 20151218, # switch_08h
-  # 20161021, # switch_late
-  # 20160526, # switch_12h_old (long gr tail + bad r2)
-  # 20170108, # switch_late
-  # 20170901, # switch_ramp 15'
-  # 20180313, # switch_24h only 10GLs analysed
-  # # other reasons
-  # 20180123, # switch_lacIoe (weird lag distrib, but all longer than without overexpressing LacI)
-  # 20180615,  # weird late switch control (all switch fast!)
-  # 20180606  # weird late switch control (all switch fast!)
 )
 
 
@@ -262,12 +251,8 @@ discarded_dates <- c(
 rename_conds <- function (.str) {
 # TODO: check NAs for all conditions
   .labels <- .str
-  # .labels[.labels=='1'] <- 'switch:1'
-  .labels <- str_replace(.labels, "switch_glcLac_lac", "glc+lac > lac")
   .labels <- str_replace(.labels, "switch_lactulose", "> lactulose")
   .labels <- str_replace(.labels, "switch_glycerol_", "> glyc ")
-  # .labels <- str_replace(.labels, "glycerol", "glyc")
-  .labels <- str_replace(.labels, "switch_0?(\\d+)h", "memory \\1h")
   .labels <- str_replace(.labels, "^switch_", "")
   .labels <- str_replace(.labels, "_", " ")
   return(.labels)
@@ -289,16 +274,10 @@ knitr::opts_chunk$set(
 # render control plots of each GC
 # source('./src/MoM_lacDilution_GCplots.R')
 
-# rmarkdown::render_site('./src/MoM_lacDilution_GFP_Estimation.Rmd')
-# rmarkdown::render_site('./src/MoM_lacDilution_Constant_Envts.Rmd')
-rmarkdown::render_site('./src/GCS_MoM_lac_Lags_Estimation.Rmd')
-
-# DISCARD SOME DATASETS
-rmarkdown::render_site('./src/GCS_MoM_lac_Controls.Rmd')
-
-# rmarkdown::render_site('./src/index.Rmd')
-# rmarkdown::render_site('./src/GCS_MoM_lac_Native.Rmd')
-rmarkdown::render_site('./src/GCS_MoM_lac_Sensitivity.Rmd')
+rmarkdown::render_site('./src/index.Rmd')
+rmarkdown::render_site('./src/GCS_MoM_lac_Lags_Estimation.Rmd') # rendered but not included in the menu links
+rmarkdown::render_site('./src/GCS_MoM_lac_Transient_Arrest.Rmd')
+rmarkdown::render_site('./src/GCS_MoM_lac_SugarsMix.Rmd')
 
 
 # RENDER ARTICLE FIGURES ####
@@ -311,4 +290,4 @@ myfigs <- list()
 source('./src/MoM_lacInduction_Figs.R')
 source('./src/MoM_lacInduction_FigsSI.R')
 
-# save.image(".RData")
+save.image(".RData")

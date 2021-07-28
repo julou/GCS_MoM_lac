@@ -1,5 +1,5 @@
 ---
-title: "Single-cell analysis of the glucose/lactose diauxic shift"
+title: "Growth-coupled sensitivity of the *lac* operon in *E. coli*"
 author: Thomas Julou
 output:
   html_document:
@@ -7,7 +7,7 @@ output:
     toc_float: false
 ---
 
-<iframe width="853" height="480" src="https://www.youtube.com/embed/2Tznm868fmc?rel=0" frameborder="0" allowfullscreen></iframe>
+<!-- <iframe width="853" height="480" src="https://www.youtube.com/embed/2Tznm868fmc?rel=0" frameborder="0" allowfullscreen></iframe> -->
 
 
 # Dataset description
