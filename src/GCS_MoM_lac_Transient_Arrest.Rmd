@@ -21,6 +21,9 @@ Distribution of growth rate in the initial condition.
   myframes %>% 
    ungroup() %>% 
    filter(str_detect(condition, 'switch_')) %>% 
+   # # discard pos with low acq rate (phototoxicity control)
+   # filter(!(date==20181008 & pos %in% 5:9), 
+   #        !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
    filter(m_start == 0) %>% 
    group_by(condition, date, pos, gl, id, cell) %>% 
    filter(n() > 3) %>% 
@@ -69,6 +72,9 @@ Note that this effect is not critical for our analysis as we focus on the compar
 ```{r}
 mycells_switching %>% 
   filter(str_detect(condition, 'lactulose_TMG') ) %>% 
+   # discard pos with low acq rate (phototoxicity control)
+   filter(!(date==20181008 & pos %in% 5:9), 
+          !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
   mutate(lag=lag_1000) %>% 
   filter(is.finite(lag)) %>% 
   group_by(condition, cell_num_from_bottom) %>% 
@@ -98,7 +104,9 @@ myrates_lactulose <- myframes %>%
   ungroup %>% 
   filter(!discard_top) %>% 
   filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose')) %>%
-  filter(!(date==20181008 & pos %in% 5:9), !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% # discard pos with low acq rate (phototoxicity control)
+   # discard pos with low acq rate (phototoxicity control)
+   filter(!(date==20181008 & pos %in% 5:9), 
+          !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
   # loop on all cells
   group_by(condition, strain, date, pos, gl, id, cell) %>%
   partition(mycluster) %>%
@@ -137,7 +145,9 @@ In addition, after comparing the induction by TMG in cells growing on glycerol o
    ungroup() %>% 
    filter(time_sec > 2*3600, !discard_top) %>% 
    filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose')) %>%
-  filter(!(date==20181008 & pos %in% 5:9), !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
+   # discard pos with low acq rate (phototoxicity control)
+   filter(!(date==20181008 & pos %in% 5:9), 
+          !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
    # sample 3 GLs per date
    group_by(date, pos, gl) %>% nest() %>% 
    group_by(date) %>% sample_n(3) %>% unnest(data) %>% 
@@ -161,7 +171,9 @@ In addition, after comparing the induction by TMG in cells growing on glycerol o
 myframes_switching %>% 
   filter(fit_lag) %>% 
   filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose')) %>%
-  filter(!(date==20181008 & pos %in% 5:9), !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
+  # discard pos with low acq rate (phototoxicity control)
+  filter(!(date==20181008 & pos %in% 5:9), 
+         !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
   filter(type=='cell') %>% 
   group_by(condition, date, ugen) %>% 
   slice(n()) %>% 
@@ -189,7 +201,9 @@ Importantly, the distribution of induction lags is not truncated and indicates t
    mycells_switching %>% 
    filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose'), 
           condition!='switch_glycerol_TMG20') %>% 
-  filter(!(date==20181008 & pos %in% 5:9), !(date==20181009 & pos %in% c(1,3,5,7,9))) %>% 
+   # discard pos with low acq rate (phototoxicity control)
+   filter(!(date==20181008 & pos %in% 5:9), 
+          !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
    mutate(lag=lag_1000,
    # mutate(lag=lag_200,
           lag=ifelse(!is.infinite(lag), lag, max(lag[is.finite(lag)])+60),
@@ -353,7 +367,9 @@ myrates_lactulose %>%
 myframes %>% 
   ungroup() %>% 
   filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose')) %>%
-  filter(!(date==20181008 & pos %in% 5:9), !(date==20181009 & pos %in% c(1,3,5,7,9))) %>% 
+  # discard pos with low acq rate (phototoxicity control)
+  filter(!(date==20181008 & pos %in% 5:9), 
+         !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
   filter(!discard_top) %>% 
   # filter(time_sec/3600==8+7) %>%
   filter(between(time_sec/3600, 15, 15.99)) %>%
@@ -369,7 +385,9 @@ myframes %>%
   ungroup() %>% 
   filter(between(time_sec/3600, 6, 8+11.99), !discard_top) %>% 
   filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose')) %>%
-  filter(!(date==20181008 & pos %in% 5:9), !(date==20181009 & pos %in% c(1,3,5,7,9))) %>% 
+  # discard pos with low acq rate (phototoxicity control)
+  filter(!(date==20181008 & pos %in% 5:9), 
+         !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
   mutate(time_bin=cut(time_sec/3600-8, breaks=seq(-2,100,2), right=FALSE)) %>% 
   # filter(end_type == 'lost') %>% 
   ggplot(aes(gfp_nb/length_um, col=time_bin)) +
@@ -470,7 +488,9 @@ For the manuscript, we focus on low illumination data.
 (myplots[['lags_hist_lacl']] <-
    mycells_switching %>% 
    filter(condition=='switch_lactulose_TMG20') %>% 
-  filter(!(date==20181008 & pos %in% 5:9), !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
+   # discard pos with low acq rate (phototoxicity control)
+   filter(!(date==20181008 & pos %in% 5:9), 
+          !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
    mutate(lag=lag_1000,
           # mutate(lag=lag_200,
           # lag=ifelse(!is.infinite(lag), lag, max(lag[is.finite(lag)])+60),
@@ -492,15 +512,20 @@ For the manuscript, we focus on low illumination data.
     # filter(between(time_sec/3600, 6, 15.99), !discard_top) %>% 
     filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose'), 
            !str_detect(condition, 'Illum')) %>% 
+    # discard pos with low acq rate (phototoxicity control)
+    filter(!(date==20181008 & pos %in% 5:9), 
+           !(date %in% c(20181009, 20181024) & pos %in% c(1,3,5,7,9))) %>% 
     filter(switch_idx==1) %>% 
     filter(time_sec>=t_lac_switch, time_sec<=t_lac_switch+3*360+10) %>% 
     group_by(condition, date, pos, gl, id) %>%
     # summarise(n=n()) %>% qplot(n, data=.)
     filter(n()==4) %>% 
-    do(mod_ll_t=lm(log(length_um)~time_sec, data=.)) %>% 
-    mutate(islope_ll_time=mod_ll_t$coefficients[2], 
-           islope_ll_time_sd=summary(mod_ll_t)$coefficients[2,2],
-           # ir2_ll_time=summary(mod_ll_t)$r.squared,
+    nest() %>% 
+    mutate(
+      mod=map(data, ~lm(log(length_um)~time_sec, data=.)),
+      islope_ll_time=map_dbl(mod, ~.$coefficients[2]), 
+      islope_ll_time_se=map_dbl(mod, ~summary(.)$coefficients[2,2]),
+      # ir2_ll_time=summary(mod_ll_t)$r.squared,
     ) %>% 
     # ggplot(aes(rate_sd, rate)) +
     # geom_point(stroke=0, alpha=.1)
