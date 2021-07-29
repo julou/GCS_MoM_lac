@@ -47,11 +47,11 @@ plot_grid(
   plot_grid(
     myplots[['TMG_induction_gly04']],
     myplots[['lags_hist_lacl']],
-    nrow=1, labels=c('A', 'B'), align="h"
+    nrow=1, labels=c('A', 'C'), align="h"
     ),
   myplots[['TMG_switch_gr_hist']] +
     theme_cowplot_legend_inset(),
-  ncol=1, labels=c("", "C"), rel_heights=c(1, 1.2)
+  ncol=1, labels=c("", "B"), rel_heights=c(1, 1.2)
 ) %>% 
   save_plot(here("plots", "SI_figs", "transient-arrest-tmg.pdf"), .,
             base_height=NULL, base_width=4.75 * 14/7, # 2 cols
@@ -169,10 +169,50 @@ plot_grid(
             base_height=NULL, base_width=4.75 * 14/7, # 2 cols
             base_aspect_ratio = 1.7)
 
-(myplots_miller[['GCS_cm_maxindct']](strain=='MG1655') +
-    guides(shape='none') +
-    NULL) %>% 
-  save_plot(here("plots", "SI_figs", "miller-cm-maxindn.pdf"), .,
-            base_height=NULL, base_width=2.25 * 14/7, # 1 col
+# (myplots_miller[['GCS_cm_maxindct']](strain=='MG1655') +
+#     guides(shape='none') +
+#     NULL) %>% 
+#   save_plot(here("plots", "SI_figs", "miller-cm-maxindn.pdf"), .,
+#             base_height=NULL, base_width=2.25 * 14/7, # 1 col
+#             base_aspect_ratio = 1)
+
+###### #
+# SUGAR MIXTURES ####
+
+# plot_grid(
+#   myplots[['sugarmix_m9zero']],
+#   myplots[['sugarmix_gr_pos']],
+#   ncol=1, rel_heights = c(1, 4), labels="AUTO") %>% 
+#   save_plot(here("plots", "SI_figs", "sugarmix-controls.pdf"), .,
+#             base_height=NULL, base_width=4.75 * 14/7, # 1 col
+#             base_aspect_ratio = 1)
+
+plot_grid(
+  plot_grid(
+    myplots[['sugarmix_m9zero']] +
+      labs(title="no C source") ,
+    myplots[['sugarmix_indn_thr']] +
+      labs(col="[glucose]\n(mg/L)") +
+      theme_cowplot_legend_inset() +
+      labs(title="with lactose 200 mg/L") ,
+  nrow=1, rel_widths = c(1, 1.2), labels=c("A", "C")),
+  myplots[['sugarmix_gr_pos']] +
+    # guides(col=guide_colorbar()) +
+    labs(title="glucose only", col="cell rank in channel") +
+    theme(legend.position = "top"),
+  ncol=1, rel_heights = c(1, 3), labels=c("", "B")) %>% 
+  save_plot(here("plots", "SI_figs", "sugarmix-controls.pdf"), .,
+            base_height=NULL, base_width=4.75 * 14/7, # 1 col
             base_aspect_ratio = 1)
 
+(myplots[['sugarmix_gr_distr']] +
+    theme_cowplot_legend_inset() +
+    NULL) %>% 
+  save_plot(here("plots", "SI_figs", "sugarmix-gr-distr.pdf"), .,
+            base_height=NULL, base_width=4.75 * 14/7, # 1 col
+            base_aspect_ratio = 0.9)
+
+# myplots[['sugarmix_crp']] %>% 
+#   save_plot(here("plots", "SI_figs", "sugarmix-crp.pdf"), .,
+#             base_height=NULL, base_width=2.25 * 14/7, # 1 col
+#             base_aspect_ratio = 1)

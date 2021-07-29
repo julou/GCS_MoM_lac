@@ -188,6 +188,64 @@ We first establish an induction criteria. Computing the proportion of observatio
 Note that while it could look appealing to stratify by the expression state of the *lac* operon (i.e. whether a cell has produced Lac proteins during the current cell cycle), what actually matters for growing on lactose is the current concentration on Lac proteins, hence the criteria used here.
 
 ```{r}
+(myplots[['sugarmix_indn_thr']] <- myframes %>% 
+  ungroup() %>% 
+  filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment == 'lac002', glu %in% c(0, 16, 32, 64, 128)) %>%
+  filter(!(date == 20210122 & glu==16) ) %>%
+  # remove frames after touching the exit
+  group_by(date, pos, gl, id) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top) %>% 
+  # no need to fill up gfp_nb NAs
+  filter(time_sec > 4 * 3600) %>% 
+  # group_by(date, glu) %>% summarise(n=n(), nn=sum(!is.na(gfp_nb)))
+  ggplot(aes(gfp_nb, col=glu*.18, group=interaction(date, glu))) +
+  stat_ecdf() +
+  coord_cartesian(xlim=c(NA, 6000)) +
+  geom_vline(xintercept = 250, lty='dotted') +
+  scale_color_viridis_c(trans='log2') +
+  labs(x='total LacZ-GFP per cell', y="cumul. proba.", col="[glucose] (mg/L)") +
+  NULL)
+
+myframes %>% 
+  ungroup() %>% 
+  filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment == 'lac002', glu %in% c(0, 16, 32, 64, 128)) %>%
+  filter(!(date == 20210122 & glu==16) ) %>%
+  # remove frames after touching the exit
+  group_by(date, pos, gl, id) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top) %>% 
+  # no need to fill up gfp_nb NAs
+  filter(time_sec > 4 * 3600) %>% 
+  # group_by(date, glu) %>% summarise(n=n(), nn=sum(!is.na(gfp_nb)))
+  ggplot(aes(gfp_nb, col=factor(date))) +
+  facet_wrap(~glu) +
+  geom_freqpoly(aes(y=pmax(after_stat(density), 1e-5)), binwidth=50, boundary=0) +
+  geom_vline(xintercept = 250, lty='dotted') +
+  # coord_cartesian(xlim=c(NA, 7000), ylim=c(NA, 5e-4)) +
+  coord_cartesian(xlim=c(NA, 7000)) +
+  scale_y_log10() +
+  guides(col='none') +
+  NULL
+
+```
+
+
+```{r}
 myrates_mix %>% 
   parse_sugarmix_conds(condition) %>% 
   ggplot(aes(induced, col=factor(date))) +
@@ -233,6 +291,7 @@ myrates_mix %>%
 Let's check growth rate distributions as a function of glucose concentration for different treatments.
 
 ```{r}
+(myplots[['sugarmix_gr_distr']] <- 
 myrates_mix %>% 
   filter(n>10) %>% 
   filter(induced<.05 | induced>.95) %>% 
@@ -240,16 +299,21 @@ myrates_mix %>%
   group_by(date, condition) %>% 
   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
   parse_sugarmix_conds(condition) %>% 
+  mutate(glu=glu * 200/1110) %>% 
   ggplot(aes(grate/log(2)*3600, col=factor(round(induced)))) +
-  facet_grid(glu~treatment) +
+  facet_grid(glu~treatment, labeller=labeller(
+    treatment=as_labeller(function(.l) c('none'='glucose only', 'lac002'='+ lactose 200mg/mL', 'iptg'='+ IPTG 200µM')[.l] ),
+    glu=as_labeller(function(.l) paste(signif(as.numeric(.l), 2), 'mg/L') )
+    ) ) +
   geom_freqpoly(aes(y=after_stat(density), size=prop, group=interaction(date, condition, prop)), binwidth=.1) +
   scale_y_continuous(breaks = scales::breaks_extended(n=3)) +
   coord_cartesian(xlim=c(-.25, 1.5), ylim=c(0, 3.5)) +
   scale_size_continuous(range=c(0.05, 1), guide='none') +
-  scale_colour_discrete(name='', labels=c('0'='uninduced', '1'='induced')) +
-  labs(x='growth rate (dbl/h)') +
+  scale_colour_discrete(labels=c('0'='uninduced', '1'='induced')) +
+  labs(x='growth rate (dbl/h)', col='subpopulation') +
   theme(legend.position = 'top') +
-  NULL
+  NULL)
+
 ```
 
 
@@ -258,25 +322,34 @@ myrates_mix %>%
 For glucose only, let's verify that the growth rate does not depend on the position in the channel.
 
 ```{r}
-myrates_mix %>% 
-  filter(n>10) %>% 
-  filter(induced<.05 | induced>.95) %>% 
-  mutate(induced=round(induced)) %>% 
-  group_by(date, condition) %>% 
-  mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
-  parse_sugarmix_conds(condition) %>% 
-  filter(treatment %in% c('none')) %>% 
-  mutate(b_rank=map_dbl(data, ~mean(.$b_rank)) ) %>% 
-  filter(b_rank < 7) %>% 
-  ggplot(aes(grate/log(2)*3600, col=factor(b_rank))) +
-  facet_wrap(~glu+date) +
-  stat_ecdf(aes(group=interaction(date, condition, b_rank))) +
-  scale_y_continuous(breaks = c(0, 0.5, 1)) +
-  scale_color_viridis_d() +
-  coord_cartesian(xlim=c(-.25, 1.5)) +
-  labs(x='growth rate (dbl/h)', y='cumulative probability', col='position') +
-  # theme(legend.position = 'top') +
-  NULL
+(myplots[['sugarmix_gr_pos']] <- 
+   myrates_mix %>% 
+   ungroup() %>% 
+   parse_sugarmix_conds(condition) %>% 
+   filter(treatment %in% c('none')) %>% 
+   filter(n>10) %>% 
+   filter(induced<.05 | induced>.95) %>% 
+   mutate(induced=round(induced), 
+          date=paste('day', as.numeric(factor(date))),
+          glu=glu * 200/1110) %>% 
+   group_by(date, condition) %>% 
+   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+   mutate(b_rank=map_dbl(data, ~mean(.$b_rank)) ) %>% 
+   filter(b_rank < 7) %>% 
+   ggplot(aes(grate/log(2)*3600, col=b_rank)) +
+   facet_wrap(~glu+date, nrow=3,
+              labeller=labeller(glu=function(.l) paste(signif(as.numeric(.l), 2), "mg/L") ) 
+              # labeller=labeller(glu=function(.l) sprintf('%.2g', as.numeric(.l)) ) 
+              ) +
+
+   stat_ecdf(aes(group=interaction(date, condition, b_rank))) +
+   scale_y_continuous(breaks = c(0, 0.5, 1)) +
+   scale_color_viridis_c() +
+   coord_cartesian(xlim=c(-.25, 1.5)) +
+   labs(x='growth rate (dbl/h)', y='cumulative probability', col='position') +
+   # theme(legend.position = 'top') +
+   NULL)
+
 ```
 
 
@@ -310,6 +383,7 @@ myframes %>%
 Let's plot the instantaneous growth rate in M9 zero averaged in 1 h bins in order to check how much growth is possible without sugar.
 
 ```{r}
+(myplots[['sugarmix_m9zero']] <- 
 myframes %>% 
   filter(condition=="M9zero") %>% 
   # remove frames after touching the exit
@@ -335,7 +409,7 @@ myframes %>%
   geom_pointrange(aes(ymin=grate-grate_sd, ymax=grate+grate_sd)) +
   expand_limits(y=.5) +
   labs(x="time (h)", y="growth rate (dbl/h)") +
-  NULL
+  NULL)
 
 ```
 
@@ -961,8 +1035,8 @@ myrates_mix %>% ungroup() %>%
               ) %>%  
     # lm(gfp_m~grate2, data=.)
     ungroup() %>% 
-    mutate(glu=factor(glu),
-           glu=factor(glu, labels=paste(levels(glu), 'µM')) ) %>% 
+    mutate(glu=factor(signif(glu*200/1110, 2)),
+           glu=factor(glu, labels=paste(levels(glu), 'mg/L')) ) %>% 
     ggplot(aes(grate2_m, gfp2_m, col=glu)) +
     stat_smooth(method="lm", fullrange=TRUE, se=FALSE, col="black") +
     geom_errorbarh(aes(xmin=grate2_m-grate2_sd, xmax=grate2_m+grate2_sd), height=0, show.legend=F) + 
