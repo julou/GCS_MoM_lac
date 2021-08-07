@@ -29,7 +29,8 @@ parse_sugarmix_conds <- function(data, colname) {
 
  
 ```{r eval=FALSE}
-# visualizing the position of cell bounding box has helped fixing various issues with data import
+# visualizing the position of cell bounding box has helped fixing various issues with data 
+# import (due to the unusual acquisition scheme with skipped frames for fluo)
 myframes %>% 
   filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
   # filter(date == 20210122) %>% 
@@ -147,7 +148,7 @@ This analysis focuses on growth rates computed over full cell cycles.
 We consider all traces with 4 observations or more, after discarding the first 4 hours (where [LacZ-GFP] obviously adjusts due to environmental changes compared to preculture conditions).
 
 ```{r cache=TRUE}
-myrates_mix <- myframes %>% 
+myrates_mix_all <- myframes %>% 
   filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
   # filter(date == 20210122) %>% 
   mutate(condition=fct_inorder(condition)) %>%
@@ -246,7 +247,7 @@ myframes %>%
 
 
 ```{r}
-myrates_mix %>% 
+myrates_mix_all %>% 
   parse_sugarmix_conds(condition) %>% 
   ggplot(aes(induced, col=factor(date))) +
   # facet_wrap(~date, scales='free') +
@@ -257,9 +258,9 @@ myrates_mix %>%
 ```
 
 ```{r eval=FALSE}
-# Let us check that our dataset is not odminated by very short traces.
+# Let us check that our dataset is not dominated by very short traces.
 # This actually reveals an unexpected change of traces length when adding IPTG (to be looked at in more details).
-myrates_mix %>% 
+myrates_mix_all %>% 
   parse_sugarmix_conds(condition) %>% 
   ggplot(aes(n, col=factor(date), lty=factor(round(induced)))) +
   facet_grid(glu~treatment) +
@@ -269,7 +270,7 @@ myrates_mix %>%
   NULL
 
 # Let's check the distribution of r2... should maybe keep traces with 10 points or more
-myrates_mix %>% 
+myrates_mix_all %>% 
   parse_sugarmix_conds(condition) %>% 
   ggplot(aes(r2, col=factor(date), lty=factor(round(induced)))) +
   facet_grid(glu~treatment) +
@@ -278,7 +279,7 @@ myrates_mix %>%
   # coord_cartesian(xlim=c(0, 200)) + 
   NULL
 
-myrates_mix %>% 
+myrates_mix_all %>% 
   parse_sugarmix_conds(condition) %>% 
   ggplot(aes(n, r2, col=factor(date))) +
   facet_grid(glu~treatment) +
@@ -288,139 +289,14 @@ myrates_mix %>%
   NULL
 ```
 
-Let's check growth rate distributions as a function of glucose concentration for different treatments.
 
-```{r}
-(myplots[['sugarmix_gr_distr']] <- 
-myrates_mix %>% 
-  filter(n>10) %>% 
-  filter(induced<.05 | induced>.95) %>% 
-  mutate(induced=round(induced)) %>% 
-  group_by(date, condition) %>% 
-  mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
-  parse_sugarmix_conds(condition) %>% 
-  mutate(glu=glu * 200/1110) %>% 
-  ggplot(aes(grate/log(2)*3600, col=factor(round(induced)))) +
-  facet_grid(glu~treatment, labeller=labeller(
-    treatment=as_labeller(function(.l) c('none'='glucose only', 'lac002'='+ lactose 200mg/mL', 'iptg'='+ IPTG 200µM')[.l] ),
-    glu=as_labeller(function(.l) paste(signif(as.numeric(.l), 2), 'mg/L') )
-    ) ) +
-  geom_freqpoly(aes(y=after_stat(density), size=prop, group=interaction(date, condition, prop)), binwidth=.1) +
-  scale_y_continuous(breaks = scales::breaks_extended(n=3)) +
-  coord_cartesian(xlim=c(-.25, 1.5), ylim=c(0, 3.5)) +
-  scale_size_continuous(range=c(0.05, 1), guide='none') +
-  scale_colour_discrete(labels=c('0'='uninduced', '1'='induced')) +
-  labs(x='growth rate (dbl/h)', col='subpopulation') +
-  theme(legend.position = 'top') +
-  NULL)
+### Time windows for steady state of induction
 
-```
-
-
-### Growth controls
-
-For glucose only, let's verify that the growth rate does not depend on the position in the channel.
-
-```{r}
-(myplots[['sugarmix_gr_pos']] <- 
-   myrates_mix %>% 
-   ungroup() %>% 
-   parse_sugarmix_conds(condition) %>% 
-   filter(treatment %in% c('none')) %>% 
-   filter(n>10) %>% 
-   filter(induced<.05 | induced>.95) %>% 
-   mutate(induced=round(induced), 
-          date=paste('day', as.numeric(factor(date))),
-          glu=glu * 200/1110) %>% 
-   group_by(date, condition) %>% 
-   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
-   mutate(b_rank=map_dbl(data, ~mean(.$b_rank)) ) %>% 
-   filter(b_rank < 7) %>% 
-   ggplot(aes(grate/log(2)*3600, col=b_rank)) +
-   facet_wrap(~glu+date, nrow=3,
-              labeller=labeller(glu=function(.l) paste(signif(as.numeric(.l), 2), "mg/L") ) 
-              # labeller=labeller(glu=function(.l) sprintf('%.2g', as.numeric(.l)) ) 
-              ) +
-
-   stat_ecdf(aes(group=interaction(date, condition, b_rank))) +
-   scale_y_continuous(breaks = c(0, 0.5, 1)) +
-   scale_color_viridis_c() +
-   coord_cartesian(xlim=c(-.25, 1.5)) +
-   labs(x='growth rate (dbl/h)', y='cumulative probability', col='position') +
-   # theme(legend.position = 'top') +
-   NULL)
-
-```
-
-
-```{r eval=FALSE}
-myframes %>%
-  filter(condition=="M9zero") %>%
-  # remove frames after touching the exit
-  group_by(id, .add=TRUE) %>%
-  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
-  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
-  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
-  # remove daughters of cells that touched the exit
-  group_by(path) %>%
-  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
-  filter(!discard_top) %>%
-  # # call cell induced as soon as it crossed the 250 threshold
-  # mutate(gfp_nb_raw=gfp_nb) %>%
-  # fill(gfp_nb, .direction="downup") %>%
-  # mutate(induced=gfp_nb>250) %>%
-  group_by(cell) %>%
-  nest() %>% ungroup() %>% sample_n(10) %>%
-  unnest(data) %>%
-  ggplot(aes(time_sec, length_um, col=cell)) +
-  geom_line() +
-  scale_x_hours() +
-  scale_colour_periodic() +
-  guides(col='none') +
-  NULL
-```
-
-Let's plot the instantaneous growth rate in M9 zero averaged in 1 h bins in order to check how much growth is possible without sugar.
-
-```{r}
-(myplots[['sugarmix_m9zero']] <- 
-myframes %>% 
-  filter(condition=="M9zero") %>% 
-  # remove frames after touching the exit
-  group_by(id, .add=TRUE) %>%
-  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
-  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
-  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
-  # remove daughters of cells that touched the exit
-  group_by(path) %>%
-  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
-  filter(!discard_top) %>% 
-  mutate(time_bin = cut_width(time_sec, width = 3600, boundary = 0, labels=FALSE)) %>% 
-  group_by(cell, time_bin) %>% 
-  filter(n() > 5) %>% 
-  nest() %>% 
-  mutate(mod=map(data, ~lm(log(length_um)~time_sec, data=.)),
-         grate=map_dbl(mod, ~coef(.)[2]),
-         grate2=grate*3600/log(2)) %>% 
-  group_by(time_bin) %>% 
-  summarise(grate=mean(grate2), grate_sd=sd(grate2), grate_se=sd(grate2)/sqrt(n())) %>% 
-  ggplot(aes(time_bin-.5, grate)) +
-  geom_hline(yintercept=0, lty="dotted") +
-  geom_pointrange(aes(ymin=grate-grate_sd, ymax=grate+grate_sd)) +
-  expand_limits(y=.5) +
-  labs(x="time (h)", y="growth rate (dbl/h)") +
-  NULL)
-
-```
-
-
-## Proportion of induced cells
-
-Let us compute the proportion of induced cells as a function of glucose concentration. For this, we first examine how this proportion changes during the experiment in order to estimate it after the transient.
+We first examine how the proportion of induced cells changes during the experiment in order to study it after the transient.
 
 ```{r}
 # plot prop_induced vs conc
-myrates_mix %>% 
+myrates_mix_all %>% 
   # filter(n>10) %>% 
   mutate(time_birth=map_dbl(data, ~min(.$time_sec))) %>% 
   parse_sugarmix_conds(condition) %>% 
@@ -433,7 +309,7 @@ myrates_mix %>%
   theme(panel.background = element_rect(fill='gray93')) +
   NULL
 
-myrates_mix %>% 
+myrates_mix_all %>% 
   filter(n>10) %>% 
   filter(induced<.05 | induced>.95) %>% 
   mutate(induced=round(induced)) %>% 
@@ -451,54 +327,10 @@ myrates_mix %>%
   geom_line() +
   theme(panel.background = element_rect(fill='gray93')) +
   NULL
-
-# # pooling all observations after the transient
-# myrates_mix %>% 
-#   filter(n>10) %>% 
-#   filter(induced<.05 | induced>.95) %>% 
-#   mutate(induced=round(induced)) %>% 
-#   group_by(date, condition) %>% 
-#   mutate(time_birth=map_dbl(data, ~min(.$time_sec))) %>% 
-#   filter(time_birth > 5 * 3600,
-#           ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
-#   summarise(n=n(), prop=sum(induced)/n, se=sqrt(prop*(1-prop)/n)) %>% 
-#   parse_sugarmix_conds(condition) %>% 
-#   filter(treatment=='lac002') %>% 
-#   ggplot(aes(glu, prop, col=factor(date))) +
-#   # geom_pointrange(aes(ymin=prop-se, ymax=prop+se)) +
-#   geom_pointrange(aes(ymin=prop-se, ymax=prop+se), 
-#                   position=position_dodge(width=.2), data=~filter(., glu>0)) +
-#   scale_x_continuous(trans='log2') +
-#   NULL
-
-# estimating uncertainty as sd over time windows of 1h
-myrates_mix %>% 
-  filter(n>10) %>% 
-  filter(induced<.05 | induced>.95) %>% 
-  mutate(induced=round(induced)) %>% 
-  group_by(date, condition) %>% 
-  mutate(time_birth=map_dbl(data, ~min(.$time_sec)),
-         time_bin = cut_width(time_birth, width = 3600, boundary = 0, labels=FALSE)) %>% 
-  filter(time_birth > 5 * 3600,
-          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
-  group_by(date, condition, time_bin) %>% 
-  summarise(n=n(), p=sum(induced)/n) %>% 
-  group_by(date, condition) %>% 
-  summarise(n=mean(n), prop=mean(p), se=sd(p)) %>% 
-  parse_sugarmix_conds(condition) %>% 
-  filter(treatment=='lac002') %>% 
-  ggplot(aes(glu, prop, col=factor(date))) +
-  # geom_pointrange(aes(ymin=prop-se, ymax=prop+se)) +
-  geom_pointrange(aes(ymin=prop-se, ymax=prop+se), 
-                  position=position_dodge(width=.2), data=~filter(., glu>0)) +
-  scale_x_continuous(trans='log2') +
-  NULL
-
 ```
 
-
 ```{r eval=FALSE}
-# Same analysis considering all observations (rather than one summary statistics per celle cycle)
+# Same analysis considering all observations (rather than one summary statistics per cell cycle)
 myframes %>% 
   filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
   # remove frames after touching the exit
@@ -566,13 +398,205 @@ myframes %>%
 
 ```
 
+We note that the proportion of induced cells stabilises typically after 5 hours. We assume that this is the time needed to adjust to the new condition and filter out previou observations also for the glucose-only and iptg datasets.
+Let compute rates for the relevant time window.
+
+```{r}
+myrates_mix <- myrates_mix_all %>%   
+  select(condition, date, cell, data) %>% 
+  unnest(data) %>% 
+  filter(time_sec > 5 * 3600,
+         ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_sec < 14 * 3600) ) %>% 
+  filter(!(date==20210122 & condition=="lac002_glu16uM")) %>% 
+  group_by(date, condition, cell) %>% 
+  filter(n()>3) %>% 
+  nest() %>% 
+  group_by(date, condition) %>% 
+  partition(mycluster) %>% 
+  mutate(
+    n=map_dbl(data, ~nrow(.x)),
+    induced=map_dbl(data, ~mean(.x$induced)),
+    mod = map(data, ~RcppArmadillo::fastLm( cbind(1, .x$time_sec), log(.x$length_um))),
+    grate = map_dbl(mod, ~.$coef[2] ),
+    r2 = map_dbl(data, ~cor(.x$time_sec, log(.x$length_um))^2),
+  ) %>% 
+  collect() %>% 
+  filter(n>10) %>% 
+  filter(induced<.05 | induced>.95) %>% 
+  mutate(induced=round(induced))
+
+```
+
+
+### Growth rate distributions
+
+Let's check growth rate distributions as a function of glucose concentration for different treatments.
+
+```{r}
+(myplots[['sugarmix_gr_distr']] <- 
+   myrates_mix %>% 
+   group_by(date, condition) %>% 
+   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+   parse_sugarmix_conds(condition) %>% 
+   mutate(glu=glu * 200/1110) %>% 
+   ggplot(aes(grate/log(2)*3600, col=factor(round(induced)))) +
+   facet_grid(glu~treatment, labeller=labeller(
+     treatment=as_labeller(function(.l) c('none'='glucose only', 'lac002'='+ lactose 200mg/mL', 'iptg'='+ IPTG 200µM')[.l] ),
+     glu=as_labeller(function(.l) paste(signif(as.numeric(.l), 2), 'mg/L') )
+   ) ) +
+   geom_freqpoly(aes(y=after_stat(density), size=prop, group=interaction(date, condition, prop)), binwidth=.1) +
+   scale_y_continuous(breaks = scales::breaks_extended(n=3)) +
+   coord_cartesian(xlim=c(-.25, 1.5), ylim=c(0, 3.5)) +
+   scale_size_continuous(range=c(0.05, 1), guide='none') +
+   scale_colour_discrete(labels=c('0'='uninduced', '1'='induced')) +
+   labs(x='growth rate (dbl/h)', col='subpopulation') +
+   theme(legend.position = 'top') +
+   NULL)
+
+```
+
+
+### Growth controls
+
+For glucose only, let's verify that the growth rate does not depend on the position in the channel.
+
+```{r}
+(myplots[['sugarmix_gr_pos']] <- 
+   myrates_mix %>% 
+   ungroup() %>% 
+   parse_sugarmix_conds(condition) %>% 
+   filter(treatment %in% c('none')) %>% 
+   mutate(date=paste('day', as.numeric(factor(date))),
+          glu=glu * 200/1110) %>% 
+   group_by(date, condition) %>% 
+   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+   mutate(b_rank=map_dbl(data, ~mean(.$b_rank)) ) %>% 
+   filter(b_rank < 7) %>% 
+   ggplot(aes(grate/log(2)*3600, col=b_rank)) +
+   facet_wrap(~glu+date, nrow=3,
+              labeller=labeller(glu=function(.l) paste(signif(as.numeric(.l), 2), "mg/L") ) 
+              # labeller=labeller(glu=function(.l) sprintf('%.2g', as.numeric(.l)) ) 
+              ) +
+   stat_ecdf(aes(group=interaction(date, condition, b_rank))) +
+   scale_y_continuous(breaks = c(0, 0.5, 1)) +
+   scale_color_viridis_c() +
+   coord_cartesian(xlim=c(-.25, 1.5)) +
+   labs(x='growth rate (dbl/h)', y='cumulative probability', col='position') +
+   # theme(legend.position = 'top') +
+   NULL)
+
+```
+
+
+```{r eval=FALSE}
+myframes %>%
+  filter(condition=="M9zero") %>%
+  # remove frames after touching the exit
+  group_by(id, .add=TRUE) %>%
+  mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+  mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+  mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+  # remove daughters of cells that touched the exit
+  group_by(path) %>%
+  mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+  filter(!discard_top) %>%
+  # # call cell induced as soon as it crossed the 250 threshold
+  # mutate(gfp_nb_raw=gfp_nb) %>%
+  # fill(gfp_nb, .direction="downup") %>%
+  # mutate(induced=gfp_nb>250) %>%
+  group_by(cell) %>%
+  nest() %>% ungroup() %>% sample_n(10) %>%
+  unnest(data) %>%
+  ggplot(aes(time_sec, length_um, col=cell)) +
+  geom_line() +
+  scale_x_hours() +
+  scale_colour_periodic() +
+  guides(col='none') +
+  NULL
+```
+
+Let's plot the instantaneous growth rate in M9 zero averaged in 1 h bins in order to check how much growth is possible without sugar.
+
+```{r}
+(myplots[['sugarmix_m9zero']] <- 
+   myframes %>% 
+   filter(condition=="M9zero") %>% 
+   # remove frames after touching the exit
+   group_by(id, .add=TRUE) %>%
+   mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+   mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+   mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+   # remove daughters of cells that touched the exit
+   group_by(path) %>%
+   mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+   filter(!discard_top) %>% 
+   mutate(time_bin = cut_width(time_sec, width = 3600, boundary = 0, labels=FALSE)) %>% 
+   group_by(cell, time_bin) %>% 
+   filter(n() > 5) %>% 
+   nest() %>% 
+   mutate(mod=map(data, ~lm(log(length_um)~time_sec, data=.)),
+          grate=map_dbl(mod, ~coef(.)[2]),
+          grate2=grate*3600/log(2)) %>% 
+   group_by(time_bin) %>% 
+   summarise(grate=mean(grate2), grate_sd=sd(grate2), grate_se=sd(grate2)/sqrt(n())) %>% 
+   ggplot(aes(time_bin-.5, grate)) +
+   geom_hline(yintercept=0, lty="dotted") +
+   geom_pointrange(aes(ymin=grate-grate_sd, ymax=grate+grate_sd)) +
+   expand_limits(y=.5) +
+   labs(x="time (h)", y="growth rate (dbl/h)") +
+   NULL)
+
+```
+
+
+## Proportion of induced cells
+
+Let us compute the proportion of induced cells as a function of glucose concentration. 
+
+```{r}
+# # pooling all observations after the transient
+# myrates_mix_all %>% 
+#   filter(n>10) %>% 
+#   filter(induced<.05 | induced>.95) %>% 
+#   mutate(induced=round(induced)) %>% 
+#   group_by(date, condition) %>% 
+#   mutate(time_birth=map_dbl(data, ~min(.$time_sec))) %>% 
+#   filter(time_birth > 5 * 3600,
+#           ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
+#   summarise(n=n(), prop=sum(induced)/n, se=sqrt(prop*(1-prop)/n)) %>% 
+#   parse_sugarmix_conds(condition) %>% 
+#   filter(treatment=='lac002') %>% 
+#   ggplot(aes(glu, prop, col=factor(date))) +
+#   # geom_pointrange(aes(ymin=prop-se, ymax=prop+se)) +
+#   geom_pointrange(aes(ymin=prop-se, ymax=prop+se), 
+#                   position=position_dodge(width=.2), data=~filter(., glu>0)) +
+#   scale_x_continuous(trans='log2') +
+#   NULL
+
+# estimating uncertainty as sd over time windows of 1h
+myrates_mix %>% 
+  group_by(date, condition) %>% 
+  mutate(time_birth=map_dbl(data, ~min(.$time_sec)),
+         time_bin = cut_width(time_birth, width = 3600, boundary = 0, labels=FALSE)) %>% 
+  group_by(date, condition, time_bin) %>% 
+  summarise(n=n(), p=sum(induced)/n) %>% 
+  group_by(date, condition) %>% 
+  summarise(n=mean(n), prop=mean(p), se=sd(p)) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment=='lac002') %>% 
+  ggplot(aes(glu, prop, col=factor(date))) +
+  # geom_pointrange(aes(ymin=prop-se, ymax=prop+se)) +
+  geom_pointrange(aes(ymin=prop-se, ymax=prop+se), 
+                  position=position_dodge(width=.2), data=~filter(., glu>0)) +
+  scale_x_continuous(trans='log2') +
+  NULL
+
+```
+
 Fit a Hill function:
 
 ```{r}
 # myrates_mix %>% 
-#   filter(n>10) %>% 
-#   filter(induced<.05 | induced>.95) %>% 
-#   mutate(induced=round(induced)) %>% 
 #   group_by(date, condition) %>% 
 #   mutate(time_birth=map_dbl(data, ~min(.$time_sec))) %>% 
 #   filter(time_birth > 5 * 3600,
@@ -593,14 +617,9 @@ Fit a Hill function:
 
 # set.seed(881676)
 myindct <- myrates_mix %>% 
-  filter(n>10) %>% 
-  filter(induced<.05 | induced>.95) %>% 
-  mutate(induced=round(induced)) %>% 
   group_by(date, condition) %>% 
   mutate(time_birth=map_dbl(data, ~min(.$time_sec)),
          time_bin = cut_width(time_birth, width = 3600, boundary = 0, labels=FALSE)) %>% 
-  filter(time_birth > 5 * 3600,
-          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
   group_by(date, condition, time_bin) %>% 
   summarise(n=n(), p=sum(induced)/n) %>% 
   group_by(date, condition) %>% 
@@ -661,7 +680,6 @@ Summarizing growth rate dependence to glucose concentration.
 myrates_mix %>% 
   group_by(date, condition) %>% 
   filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
-  filter(induced==0 | induced==1) %>% 
   group_by(date, condition, induced) %>% 
   summarise(
     gr_mean=mean(grate/log(2)*3600),
@@ -726,7 +744,6 @@ myindct %>%
     myrates_mix %>% 
     group_by(date, condition) %>% 
     filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
-    filter(induced==0 | induced==1) %>% 
     group_by(condition, induced) %>% 
     summarise(
       gr_mean=mean(grate/log(2)*3600),
@@ -826,7 +843,6 @@ myrates_mix %>%
   group_by(date, condition) %>% 
   filter(between(grate_se/grate, -1, 2)) %>% 
   # filter(between(grate_se/grate, quantile(grate_se/grate, .01, na.rm=TRUE), quantile(grate_se/grate, .99, na.rm=TRUE) )) %>% with(range(se))
-  filter(induced==0 | induced==1) %>% 
   parse_sugarmix_conds(condition) %>% 
   filter(glu<1000) %>% 
   ggplot(aes(grate_se/grate, col=factor(induced), group=interaction(date, condition, induced))) +
@@ -843,7 +859,6 @@ myrates_mix %>%
 myrates_mix %>% 
   group_by(date, condition) %>% 
   filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
-  filter(induced==0 | induced==1) %>% 
   group_by(date, condition, induced) %>% 
   summarise(
     gr_mean=mean(grate/log(2)*3600),
@@ -874,7 +889,6 @@ myrates_mix %>%
 myrates_mix %>%
   group_by(date, condition) %>%
   filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
-  filter(induced==0 | induced==1) %>%
   group_by(date, condition, induced) %>%
   summarise(
     gr_mean=mean(grate/log(2)*3600),
@@ -900,15 +914,10 @@ myrates_mix %>%
 
 ```{r}
 myrates_mix %>% ungroup() %>% 
-  filter(n>10) %>% 
   mutate(gfp_m = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
          gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
          time_birth=map_dbl(data, ~min(.$time_sec)),
   ) %>% 
-  filter(time_birth > 5 * 3600,
-          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
-  filter(induced<.05 | induced>.95) %>% 
-  mutate(induced=round(induced)) %>% 
   group_by(date, condition) %>% 
   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
   parse_sugarmix_conds(condition) %>% 
@@ -934,16 +943,11 @@ First without correcting for bleaching.
 ```{r}
 # gfp_c vs grate
 myrates_mix %>% ungroup() %>% 
-  filter(n>10) %>% 
   mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
          gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
          time_birth=map_dbl(data, ~min(.$time_sec)),
          grate2=grate/log(2)*3600,
   ) %>% 
-  filter(time_birth > 5 * 3600,
-          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
-  filter(induced<.05 | induced>.95) %>% 
-  mutate(induced=round(induced)) %>% 
   group_by(date, condition) %>% 
   filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
@@ -972,7 +976,6 @@ Note that we recover the so-called C-line of Hwa, *et al.*
 ```{r}
 # gfp_c vs grate (bleaching corrected)
 myrates_mix %>% ungroup() %>% 
-  filter(n>10) %>% 
   mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
          gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
          gfp_b = 5.3e-5/5, # Kaiser2018 reports 5.3e-5 / sec for 5x stronger illumination
@@ -980,10 +983,6 @@ myrates_mix %>% ungroup() %>%
          time_birth=map_dbl(data, ~min(.$time_sec)),
          grate2=grate/log(2)*3600,
   ) %>% 
-  filter(time_birth > 5 * 3600,
-          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
-  filter(induced<.05 | induced>.95) %>% 
-  mutate(induced=round(induced)) %>% 
   group_by(date, condition) %>% 
   filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
@@ -1008,7 +1007,6 @@ myrates_mix %>% ungroup() %>%
 
 (myplots[['sugarmix_crp']] <- 
     myrates_mix %>% ungroup() %>% 
-    filter(n>10) %>% 
     mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
            gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
            gfp_b = 5.3e-5/5, # Kaiser2018 reports 5.3e-5 / sec for 5x stronger illumination
@@ -1016,10 +1014,6 @@ myrates_mix %>% ungroup() %>%
            time_birth=map_dbl(data, ~min(.$time_sec)),
            grate2=grate/log(2)*3600,
     ) %>% 
-    filter(time_birth > 5 * 3600,
-           ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
-    filter(induced<.05 | induced>.95) %>% 
-    mutate(induced=round(induced)) %>% 
     group_by(date, condition) %>% 
     filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
     mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
@@ -1056,7 +1050,6 @@ myrates_mix %>% ungroup() %>%
 ```{r eval=FALSE}
 # looking at activity instead.
 myrates_mix %>% ungroup() %>% 
-  filter(n>10) %>% 
   mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb)),
          gfp_b = 5.3e-5/5, # Kaiser2018 reports 5.3e-5 / sec for 5x stronger illumination
          dg_dt  = map_dbl(data, ~(last(.$gfp_nb)-first(.$gfp_nb))/diff(range(.$time_sec))),
@@ -1064,10 +1057,6 @@ myrates_mix %>% ungroup() %>%
          time_birth=map_dbl(data, ~min(.$time_sec)),
          grate2=grate/log(2)*3600,
   ) %>% 
-  filter(time_birth > 5 * 3600,
-          ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>% 
-  filter(induced<.05 | induced>.95) %>% 
-  mutate(induced=round(induced)) %>% 
   group_by(date, condition) %>% 
   filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
   filter(induced==1) %>% 
@@ -1093,7 +1082,6 @@ myrates_mix %>% ungroup() %>%
 
 ```{r}
 myrates_mix %>% ungroup() %>%
-  filter(n>10) %>%
   mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
          gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
          gfp_b = 5.3e-5/5, # Kaiser2018 reports 5.3e-5 / sec for 5x stronger illumination
@@ -1101,10 +1089,6 @@ myrates_mix %>% ungroup() %>%
          time_birth=map_dbl(data, ~min(.$time_sec)),
          grate2=grate/log(2)*3600,
   ) %>%
-  filter(time_birth > 5 * 3600,
-         ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>%
-  filter(induced<.05 | induced>.95) %>%
-  mutate(induced=round(induced)) %>%
   group_by(date, condition) %>%
   filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>%
@@ -1129,7 +1113,6 @@ myrates_mix %>% ungroup() %>%
 
 
 myrates_mix %>% ungroup() %>%
-  filter(n>10) %>%
   mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
          gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
          gfp_b = 5.3e-5/5, # Kaiser2018 reports 5.3e-5 / sec for 5x stronger illumination
@@ -1137,10 +1120,6 @@ myrates_mix %>% ungroup() %>%
          time_birth=map_dbl(data, ~min(.$time_sec)),
          grate2=grate/log(2)*3600,
   ) %>%
-  filter(time_birth > 5 * 3600,
-         ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_birth < 14 * 3600) ) %>%
-  filter(induced<.05 | induced>.95) %>%
-  mutate(induced=round(induced)) %>%
   group_by(date, condition) %>%
   filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>%
@@ -1155,7 +1134,8 @@ myrates_mix %>% ungroup() %>%
          slope_se=map_dbl(mod, ~summary(.)$coef[2,2]),
   ) %>% 
   ggplot(aes(glu, slope, group=date)) +
-  geom_hline(aes(yintercept=slope),
+  geom_hline(yintercept=0, lty='dotted') +
+  geom_hline(aes(yintercept=slope), lty='dashed',
              data=~mutate(.,
                           grate2=map_dbl(data, ~mean(.$grate2)), 
                           gfp_tot=map_dbl(data, ~exp(mean(log(.$gfp_tot), na.rm=T))),
@@ -1164,7 +1144,7 @@ myrates_mix %>% ungroup() %>%
                mutate(slope=map_dbl(data, ~coef(lm(gfp_tot~grate2, data=.))[2])) ) +
   geom_pointrange(aes(ymin=slope-slope_se, ymax=slope+slope_se), position=position_dodge(width=.2)) +
   scale_x_continuous(trans='log2') +
-  scale_y_log10() +
+  # scale_y_log10() +
   labs(x="[glucose] (µM)", y="C-line slope") +
   NULL
   

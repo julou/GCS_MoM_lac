@@ -274,10 +274,10 @@ knitr::opts_chunk$set(
 # render control plots of each GC
 # source('./src/MoM_lacDilution_GCplots.R')
 
-rmarkdown::render_site('./src/index.Rmd')
 rmarkdown::render_site('./src/GCS_MoM_lac_Lags_Estimation.Rmd') # rendered but not included in the menu links
 rmarkdown::render_site('./src/GCS_MoM_lac_Transient_Arrest.Rmd')
 rmarkdown::render_site('./src/GCS_MoM_lac_SugarsMix.Rmd')
+rmarkdown::render_site('./src/index.Rmd') # render last
 
 
 # RENDER ARTICLE FIGURES ####
@@ -287,7 +287,7 @@ knitr::opts_chunk$set(
   )
 
 myfigs <- list()
-source('./src/MoM_lacInduction_Figs.R')
-source('./src/MoM_lacInduction_FigsSI.R')
+source('./src/GCS_MoM_lac_Figs.R')
+source('./src/GCS_MoM_lac_FigsSI.R')
 
 save.image(".RData")

@@ -179,13 +179,24 @@ plot_grid(
 ###### #
 # SUGAR MIXTURES ####
 
-# plot_grid(
-#   myplots[['sugarmix_m9zero']],
-#   myplots[['sugarmix_gr_pos']],
-#   ncol=1, rel_heights = c(1, 4), labels="AUTO") %>% 
-#   save_plot(here("plots", "SI_figs", "sugarmix-controls.pdf"), .,
-#             base_height=NULL, base_width=4.75 * 14/7, # 1 col
-#             base_aspect_ratio = 1)
+mytables[['sugarmix_list']] %>%
+  mutate(treatment=fct_recode(treatment, 'glucose only'='none', 'with lactose 200mg/L'='lac002', 'with IPTG 200µM'='iptg')) %>% 
+  mutate_if(is.numeric, list(as.character)) %>% # protect existing rounding of floats
+  knitr::kable("latex", booktabs=TRUE, #longtable = TRUE,
+               col.names=c('treatment', '[glucose] (mg/L)', 'date', '# analysed cells', 'prop. induced', 
+                           '# growth channels', '# frames'),
+               caption='List of experiments on the concentration-dependent sugar preference used in this study with summary statistics. Experiments that have been discarded from further analysis are greyed out.') %>%
+  # kableExtra::kable_styling(full_width=TRUE) %>%
+  kableExtra::kable_styling(latex_options = c("striped", "scale_down")) %>%
+  # kableExtra::column_spec(3:6, width = "3.5em") %>%
+  # kableExtra::column_spec(7:8, width = "5em") %>%
+  kableExtra::row_spec(
+    which(mytables[['sugarmix_list']]$date==20210122 & mytables[['sugarmix_list']]$glu==2.9
+          | mytables[['sugarmix_list']]$date %in% c(20210122, 20210305) & mytables[['sugarmix_list']]$glu==5.8
+    ), italic=T, color="gray") %>%
+  str_replace(fixed("{tab:}"), "{tab:sugarmix-list}") %>%
+  write(here('plots', 'SI_figs', 'sugarmix-list.tex'))
+
 
 plot_grid(
   plot_grid(

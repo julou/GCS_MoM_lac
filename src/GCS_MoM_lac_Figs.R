@@ -376,15 +376,15 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig2.pdf"), myfigs[[2]],
       coord_cartesian(xlim=c(0, 1.15), ylim=c(0, NA)) +
       theme(legend.position = 'right') +
       NULL,
-    ncol=1, rel_heights = c(1, 1), labels = c("A", "C")),
+    ncol=1, rel_heights = c(1, .9), labels = c("A", "C")),
   
   myplots[['sugarmix_induction']](.xbreaks = 2 * 10^(-1:2)),
   
-  nrow=1, rel_widths = c(1, 1.2), labels=c("", "B")
+  nrow=1, rel_widths = c(1, 1.4), labels=c("", "B")
 ) )
 save_plot(here("plots", "figs", "GCS_MoM_lac_fig3.pdf"), myfigs[[3]],
           base_height=NULL, base_width=4.75 * 14/7, # 2 cols
-          base_asp = 1.6
+          base_asp = 1.8
 )
 
 

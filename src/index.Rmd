@@ -15,6 +15,8 @@ output:
 ```{r}
 mygl <- myframes %>% ungroup() %>% 
   filter(!discard_top, !discard_start) %>% 
+  filter(str_detect(condition, "switch")) %>% 
+  filter(!str_detect(condition, "stdIllum")) %>% 
   mutate(label=rename_conds(condition)) %>% 
   # start from the total number of observations
   group_by(condition, label, date, pos, gl) %>%
@@ -31,7 +33,7 @@ mygl <- myframes %>% ungroup() %>%
   # add the number of frames
   left_join(myframes %>%
               group_by(date, pos, gl) %>% 
-              summarise(nframes=max(frame)) )
+              summarise(nframes=max(frame)+1) )
 
 ```
 
@@ -51,13 +53,71 @@ mygl <- myframes %>% ungroup() %>%
        group_by(condition, date) %>%
        summarise(
          n_switch=n(),
-         n_lags=sum(!is.na(lag_200)),
+         n_lags=sum(!is.na(lag_1000)),
          n_discard=sum(logl_time_slope_before <= min_growth_rate, na.rm=TRUE) ) %>% 
        mutate(n_discard=ifelse(condition=='switch_gly_lac', NA, n_discard) )
    )
 ) %>% 
   filter(! date %in% discarded_dates) %>% 
   knitr::kable()
+
+```
+
+```{r}
+(mytables[['sugarmix_list']] <- 
+    myrates_mix %>% 
+    bind_rows(
+       myrates_mix_all %>% 
+          filter( (condition=="lac002_glu32uM" & date != 20210504) 
+                  | (date==20210122 & condition=="lac002_glu16uM") ) %>% 
+          filter(n>10) %>% 
+          filter(induced<.05 | induced>.95) %>% 
+          mutate(induced=round(induced))
+    ) %>% 
+    # start from the total number of observations
+    group_by(condition, date) %>%
+    summarise(n_cells=n(), p_induced=signif(sum(induced)/n_cells, 2)) %>%
+    # add the number of gls
+    left_join(myframes %>%
+                 ungroup() %>% 
+                 filter(!discard_top) %>% 
+                 group_by(condition, date, pos, gl) %>% 
+                 slice(1) %>% 
+                 group_by(condition, date) %>% 
+                 summarise(n_gls=n())
+    ) %>% 
+    # add the number of frames
+    left_join(myframes %>%
+                 group_by(condition, date) %>% 
+                 summarise(nframes=max(frame)+1) ) %>% 
+    ungroup() %>% 
+    parse_sugarmix_conds(condition) %>% 
+    select(-condition) %>%
+    arrange(treatment, glu) %>% relocate(treatment) %>% 
+    mutate(glu=signif(glu * 200/1110, 2)) %>% 
+    #add M9 zero control
+    bind_rows(
+       myframes %>% 
+          filter(condition=="M9zero") %>% 
+          # remove frames after touching the exit
+          group_by(id, .add=TRUE) %>%
+          mutate(discard_top=which_touch_exit(vertical_top, 1)) %>%
+          mutate(discard_top=ifelse(discard_start, FALSE, discard_top)) %>% # not in the preexpt step (2h)
+          mutate(end_type=ifelse(any(discard_top), 'touchtop', end_type)) %>% # update end_type to exit for cells which have touched the vertical cutoff
+          # remove daughters of cells that touched the exit
+          group_by(path) %>%
+          mutate(discard_top=which_to_progeny(discard_top, cid)) %>%
+          filter(!discard_top) %>% 
+          group_by(date, pos, gl, id) %>% 
+          filter(n() > 5) %>% # fit on 5 points per time window so 5 points at least 
+          filter(frame==max(frame)) %>% 
+          group_by(date) %>% 
+          summarise(treatment="M9 zero", glu=0, n_cells=n(), p_induced=0, 
+                    n_gls=length(unique(interaction(pos, gl))), nframes=max(frame)+1)
+    )
+) %>% 
+   print(n=Inf)
+
 
 ```
 
