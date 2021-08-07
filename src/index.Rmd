@@ -13,33 +13,28 @@ output:
 # Dataset description
 
 ```{r}
-mygl <- myframes %>% ungroup() %>% 
-  filter(!discard_top, !discard_start) %>% 
-  filter(str_detect(condition, "switch")) %>% 
-  filter(!str_detect(condition, "stdIllum")) %>% 
-  mutate(label=rename_conds(condition)) %>% 
-  # start from the total number of observations
-  group_by(condition, label, date, pos, gl) %>%
-  summarise(n_obs=n()) %>%
-  # add the number of dividing cells
-  left_join(myframes %>%
-              ungroup() %>% 
-              filter(!discard_top, end_type=='div') %>% 
-              group_by(date, pos, gl, id) %>% 
-              filter(!any(discard_start)) %>% 
-              slice(1) %>% 
-              group_by(date, pos, gl) %>% 
-              summarise(n_div_cells=n()) ) %>%
-  # add the number of frames
-  left_join(myframes %>%
-              group_by(date, pos, gl) %>% 
-              summarise(nframes=max(frame)+1) )
-
-```
-
-
-```{r}
-(mytables[['expts_list']] <- mygl %>% ungroup() %>% 
+(mytables[['lacl_list']] <- 
+   myframes %>% ungroup() %>% 
+   filter(!discard_top, !discard_start) %>% 
+   filter(str_detect(condition, "switch")) %>% 
+   filter(!str_detect(condition, "stdIllum")) %>% 
+   mutate(label=rename_conds(condition)) %>% 
+   # start from the total number of observations
+   group_by(condition, label, date, pos, gl) %>%
+   summarise(n_obs=n()) %>%
+   # add the number of dividing cells
+   left_join(myframes %>%
+               ungroup() %>% 
+               filter(!discard_top, end_type=='div') %>% 
+               group_by(date, pos, gl, id) %>% 
+               filter(!any(discard_start)) %>% 
+               slice(1) %>% 
+               group_by(date, pos, gl) %>% 
+               summarise(n_div_cells=n()) ) %>%
+   # add the number of frames
+   left_join(myframes %>%
+               group_by(date, pos, gl) %>% 
+               summarise(nframes=max(frame)+1) ) %>% 
    # mutate(condition=factor(condition, levels=unique(condition_ts$condition)) ) %>% 
    group_by(condition, label, date) %>%
    summarise(n_lanes=length(unique(interaction(date, pos, gl))),

@@ -1,27 +1,23 @@
 
-#  xxx update!!
-# mytables[['expts_list']] %>% 
-#   filter(! condition %in% c("switch_ramp15min", "switch_lactose_priming"),
-#          ! str_detect(condition, "_stdIllum")) %>% 
-#   ungroup() %>% select(-condition) %>% rename(condition=label) %>% 
-#   mutate(condition=str_replace(condition, '>', ' to ')) %>% 
-#   (function(.df)
-#     knitr::kable(.df, "latex", booktabs=TRUE, #longtable = TRUE, 
-#                  col.names=c('condition', 'date', '# growth channels', '# full cell cycles', '# observations',
-#                              '# cells at switch', '# estimated lags', '# arrested cells at switch'),
-#                  caption='List of experiments used in this study with summary statistics. Experiments that have been discarded from further analysis are greyed out.') %>% 
-#      # kableExtra::kable_styling(full_width=TRUE) %>% 
-#      kableExtra::kable_styling(latex_options = c("striped", "scale_down")) %>%
-#      kableExtra::column_spec(3:6, width = "3.5em") %>% 
-#      kableExtra::column_spec(7:8, width = "5em") %>% 
-#      kableExtra::row_spec(which(.df$date %in% discarded_dates), italic=T, color="gray") %>% 
-#      identity()
-#   ) %>% 
-#   str_replace(fixed("{tab:}"), "{tab:expts-list}") %>% 
+mytables[['lacl_list']] %>% 
+  mutate(n_lags=ifelse(condition %in% c("switch_glycerol_TMG20", "switch_lactulose"), NA, n_lags)) %>% 
+  ungroup() %>% select(-condition) %>% rename(condition=label) %>%
+  mutate(condition=str_replace(condition, '>', ' to ')) %>%
+  (function(.df)
+    knitr::kable(.df, "latex", booktabs=TRUE, #longtable = TRUE,
+                 col.names=c('condition', 'date', '# growth channels', '# full cell cycles', '# observations',
+                             '# cells at switch', '# estimated lags', '# arrested cells at switch'),
+                 caption='List of experiments on growth-coupled sensitivity during transient growth arrest (Fig. 1C) with summary statistics.') %>%
+     # kableExtra::kable_styling(full_width=TRUE) %>%
+     kableExtra::kable_styling(latex_options = c("striped", "scale_down")) %>%
+     kableExtra::column_spec(3:6, width = "3.5em") %>%
+     kableExtra::column_spec(7:8, width = "5em") %>%
+     kableExtra::row_spec(which(.df$date %in% discarded_dates), italic=T, color="gray") %>%
+     identity()
+  ) %>%
+  str_replace(fixed("{tab:}"), "{tab:lactulose-list}") %>%
 #   str_replace(fixed("\\resizebox{\\linewidth}{!}"), "\\resizebox*{!}{0.9\\textheight}") %>% 
-#   write(here('plots', 'SI_figs', 'expts-list.tex'))
-
-
+  write(here('plots', 'SI_figs', 'lacl-list.tex'))
 
 
 (myplots[['TMG_induction_gly04']] <- (function() {
@@ -185,7 +181,7 @@ mytables[['sugarmix_list']] %>%
   knitr::kable("latex", booktabs=TRUE, #longtable = TRUE,
                col.names=c('treatment', '[glucose] (mg/L)', 'date', '# analysed cells', 'prop. induced', 
                            '# growth channels', '# frames'),
-               caption='List of experiments on the concentration-dependent sugar preference used in this study with summary statistics. Experiments that have been discarded from further analysis are greyed out.') %>%
+               caption='List of experiments on the concentration-dependent sugar preference (Fig. 3) with summary statistics. Experiments that have been discarded from further analysis are greyed out.') %>%
   # kableExtra::kable_styling(full_width=TRUE) %>%
   kableExtra::kable_styling(latex_options = c("striped", "scale_down")) %>%
   # kableExtra::column_spec(3:6, width = "3.5em") %>%
