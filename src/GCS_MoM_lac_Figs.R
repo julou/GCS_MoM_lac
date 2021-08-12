@@ -23,11 +23,40 @@ myfigs <- list()
    NULL
 )
 
-(myplots[['lac_model_phdiag']] <-
-    tibble(path=list.files(here("material", "Erik_models"), "lac_phase.*", full.names = TRUE)) %>% 
+(myplots[['lac_model_const_phdiag']] <-
+    tibble(path=list.files(here("material", "Erik_models"), "lac_phasediagram_cons.*", full.names = TRUE)) %>% 
     mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
     unnest(data) %>% 
-    extract(path, c('curve'), ".*/lac_phasediagram_(.+)\\.txt") %>% 
+    extract(path, c('curve'), ".*/lac_phasediagram_cons_(.+)\\.txt") %>% 
+    (function(.df)
+      ggplot(.df) +
+       geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
+                    data=bind_rows(.df, 
+                                   tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
+                                   tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')),
+                                   ))) +
+    geom_line(aes(exp(X1), exp(X2), col=curve)) +
+    geom_vline(xintercept = log(2)/0.5, lty='dashed') +
+    geom_vline(xintercept = log(2)/0.5*10, lty='dashed', col='grey60') +
+    annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
+    annotate("text", x=Inf, y=Inf, label='induced', hjust=1.1, vjust=1.5) +
+    scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
+    scale_y_log10(breaks=c(1e-6, 1e-3, 1), expand=c(0, 0),
+                  # breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+    expand_limits(y=c(5e-7, 2)) +
+    labs(x='doubling time (h)', y=expression(paste('inducer level ', italic('b')))) +
+    # scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dashed')) +
+    scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
+    theme(legend.position = 'none') +
+    NULL
+)
+
+(myplots[['lac_model_crp_phdiag']] <-
+    tibble(path=list.files(here("material", "Erik_models"), "lac_phasediagram_w_crp.*", full.names = TRUE)) %>% 
+    mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
+    unnest(data) %>% 
+    extract(path, c('curve'), ".*/lac_phasediagram_w_crp_(.+)\\.txt") %>% 
     (function(.df)
       ggplot(.df) +
        geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
@@ -175,7 +204,7 @@ myfigs <- list()
   # LEFT COL
   plot_grid(
     NULL,
-    myplots[['lac_model_phdiag']],
+    myplots[['lac_model_const_phdiag']],
     ncol=1, rel_heights = c(1, 1.1), labels=c("A", "B")
   ),
   
@@ -329,7 +358,7 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig1.pdf"), myfigs[[1]],
     expand_limits(x=c(-.1, 1.4)) +
     labs(y='max [LacZ] (MU)      ') +
     NULL,
-  myplots[['lac_model_phdiag']],
+  myplots[['lac_model_crp_phdiag']],
   
   NULL,
   NULL,
