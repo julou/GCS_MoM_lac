@@ -184,6 +184,7 @@ myrates_mix_all <- myframes %>%
 
 ```
 
+
 We first establish an induction criteria. Computing the proportion of observation where [LacZ-GFP] > 250 yields clearly bimodal distribution with cells either induced or not, so one can reasonably stratify by this variable.
 
 Note that while it could look appealing to stratify by the expression state of the *lac* operon (i.e. whether a cell has produced Lac proteins during the current cell cycle), what actually matters for growing on lactose is the current concentration on Lac proteins, hence the criteria used here.
@@ -402,7 +403,7 @@ We note that the proportion of induced cells stabilises typically after 5 hours.
 Let compute rates for the relevant time window.
 
 ```{r}
-myrates_mix <- myrates_mix_all %>%   
+myrates_mix <- myrates_mix_all %>% 
   select(condition, date, cell, data) %>% 
   unnest(data) %>% 
   filter(time_sec > 5 * 3600,
@@ -421,6 +422,15 @@ myrates_mix <- myrates_mix_all %>%
     r2 = map_dbl(data, ~cor(.x$time_sec, log(.x$length_um))^2),
   ) %>% 
   collect() %>% 
+  identity()
+
+myrates_mix %>% 
+  ungroup() %>% 
+  filter(n>10) %>% 
+  mutate(type=induced<.05 | induced>.95) %>% 
+  summarise(t=sum(type), n=n(), p=1-t/n)
+
+myrates_mix <- myrates_mix %>% 
   filter(n>10) %>% 
   filter(induced<.05 | induced>.95) %>% 
   mutate(induced=round(induced))
@@ -834,6 +844,35 @@ myindct %>%
 
 ```
 
+```{r eval=FALSE}
+# number of cells
+myrates_mix %>% 
+  group_by(date, condition) %>% 
+  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment != "iptg") %>% 
+  group_by(treatment, glu, date) %>% 
+  summarise(n=n()) %>% 
+  # arrange(n) %>% 
+  print(n=Inf)
+
+# growth rate range
+myrates_mix %>% 
+  group_by(date, condition) %>% 
+  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  group_by(condition, induced) %>% 
+  summarise(
+    gr_mean=mean(grate/log(2)*3600),
+    gr_sd  =sd(grate/log(2)*3600),
+    n=n(),
+  ) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment=='none') %>% 
+  arrange(glu) %>% 
+  print(n=Inf)
+
+```
+
 
 ```{r eval=FALSE}
 # looking at the relative error of growth rate estimation
@@ -1047,6 +1086,24 @@ myrates_mix %>% ungroup() %>%
 
 ```
 
+
+```{r eval=FALSE}
+# number of cells
+myrates_mix %>% ungroup() %>% 
+  group_by(date, condition) %>% 
+  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  filter(induced==1) %>% 
+  filter(n()>10) %>% 
+  ungroup() %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment=="iptg") %>% 
+  group_by(treatment, glu, date) %>% 
+  summarise(n=n()) %>% 
+  # arrange(n) %>% 
+  print(n=Inf)
+
+```
+
 ```{r eval=FALSE}
 # looking at activity instead.
 myrates_mix %>% ungroup() %>% 
@@ -1157,8 +1214,9 @@ There would be a lot to explore regarding e.g. switching dynamics at the single-
 
 ```{r eval=FALSE}
 myframes %>% 
-  filter(date==20210504 & str_detect(condition, "lac002") | 
-           date==20210506 & condition=="lac002_glu64uM") %>% 
+  filter(date==20210504 & str_detect(condition, "lac002") ) %>% 
+  # filter(date==20210504 & str_detect(condition, "lac002") | 
+  #          date==20210506 & condition=="lac002_glu64uM") %>% 
   filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
   # remove frames after touching the exit
   group_by(id, .add=TRUE) %>%
@@ -1177,11 +1235,12 @@ myframes %>%
   filter(!is.na(gfp_nb)) %>% 
   parse_sugarmix_conds(condition) %>% 
   group_by(date, condition, pos, gl) %>%
-  nest() %>% group_by(date, condition) %>% slice(1:8) %>%
+  filter(max(time_sec) > 10 * 3600) %>% 
+  nest() %>% group_by(date, condition) %>% slice(1:6) %>%
   unnest(data) %>%
   # ggplot(aes(time_sec, gfp_nb/length_um, col=b_rank, group=cell)) +
   ggplot(aes(time_sec, gfp_nb+100, col=b_rank, group=cell)) +
-  facet_wrap(~conc+date+pos+gl, nrow=8, dir="v", #scales='free_x',
+  facet_wrap(~glu+date+pos+gl, ncol=6, dir="h", #scales='free_x',
              labeller = as_labeller(label_value, multi_line=FALSE)) +
   geom_hline(yintercept=350, lty="dashed") +
   # geom_vline(xintercept = 5 * 3600, lty='dotted') +
@@ -1194,12 +1253,14 @@ myframes %>%
   theme(legend.position = "top") +
   NULL
 
-ggsave("sugarmix_gfpnb_switches.pdf", width=24, height=16)
+ggsave("plots/sugarmix_gfpnb_switches.pdf", width=16, height=10)
+# ggsave("plots/sugarmix_gfpnb_switches.pdf", width=11, height=7)
 
 
 myframes %>% 
-  filter(date==20210504 & str_detect(condition, "lac002") | 
-           date==20210506 & condition=="lac002_glu64uM") %>% 
+  filter(date==20210504 & str_detect(condition, "lac002") ) %>% 
+  # filter(date==20210504 & str_detect(condition, "lac002") | 
+  #          date==20210506 & condition=="lac002_glu64uM") %>% 
   filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
   # remove frames after touching the exit
   group_by(id, .add=TRUE) %>%
@@ -1216,13 +1277,14 @@ myframes %>%
   # mutate(gfp_nb_raw=gfp_nb) %>% 
   # fill(gfp_nb, .direction="downup") %>% 
   filter(!is.na(gfp_nb)) %>% 
-  parse_sugarmix_conds(condition) %>% 
+  parse_sugarmix_conds(condition) %>%
   group_by(date, condition, pos, gl) %>%
-  nest() %>% group_by(date, condition) %>% slice(1:8) %>%
-  unnest(data) %>%
+  filter(max(time_sec) > 10 * 3600) %>% 
+  nest() %>% group_by(date, condition) %>% slice(1:6) %>%
+  unnest(data) %>% 
   # ggplot(aes(time_sec, gfp_nb/length_um, col=b_rank, group=cell)) +
   ggplot(aes(time_sec, gfp_nb/length_um + 30, col=b_rank, group=cell)) +
-  facet_wrap(~conc+date+pos+gl, nrow=8, dir="v", #scales = 'free_x',
+  facet_wrap(~glu+date+pos+gl, ncol=6, dir="h", #scales = 'free_x',
              labeller = as_labeller(label_value, multi_line=FALSE)) +
   # geom_hline(yintercept=350, lty="dashed") +
   # geom_vline(xintercept = 5 * 3600, lty='dotted') +
@@ -1235,7 +1297,7 @@ myframes %>%
   theme(legend.position = "top") +
   NULL
 
-ggsave("sugarmix_gfpc_switches.pdf", width=24, height=16)
+ggsave("plots/sugarmix_gfpc_switches.pdf", width=16, height=10)
 
 ```
 

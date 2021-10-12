@@ -178,6 +178,33 @@ myfigs <- list()
     NULL
 )
 
+(myplots[['critic_conc_monod']] <- (function() {
+  lamstar <- 1.2
+  mux <- 1/48
+  muy <- 1/48
+  ggplot() +
+    # stat_function(fun=~ (.+mux)/(lamstar-.), position='jitter') +
+    stat_function(aes(ymin=after_stat(log10(y)), ymax=Inf, fill="lower"), n=501,
+                  fun=~ 7.9^(-1/2) * (.+mux)/(lamstar-.), geom='ribbon') +
+    stat_function(aes(y=after_stat(log10(y)), col="lower"), n=501,
+                  fun=~ 7.9^(-1/2) * (.+mux)/(lamstar-.)) +
+    stat_function(aes(ymin=after_stat(log10(y)), ymax=Inf, fill="upper"), n=501,
+                  fun=~ 7.9^(1/2) * (.+mux)/(lamstar-.), geom='ribbon') +
+    stat_function(aes(y=after_stat(log10(y)), col="upper"), n=501,
+                  fun=~ 7.9^(1/2) * (.+mux)/(lamstar-.)) +
+    stat_function(aes(y=after_stat(log10(y))), fun=~ ./(lamstar-.), lty='dotted') +
+    annotate("text", x=1.2, y=-2, label='uninduced', hjust=1.5, vjust=0) +
+    annotate("text", x=0, y=Inf, label='induced', hjust=-.1, vjust=2) +
+    coord_cartesian(xlim=c(-.0, 1.2), ylim=c(-2.6, 3), expand = FALSE) +
+    # coord_cartesian(xlim=c(-0.01, 1.2), expand = FALSE) +
+    scale_x_continuous(limits=c(-.01, 1.2), breaks=scales::breaks_pretty(n=4)) +
+    scale_y_continuous(breaks=seq(-2, 2, 2), labels = 10^seq(-2, 2, 2)) +
+    scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
+    labs(x="growth rate (dbl/h)", y="critical nutrient concentration c/c0") +
+    guides(col='none', fill='none') +
+    NULL
+})() )
+
 
 # ### ### ### ###
 # #### MILLER ASSAY ####
@@ -199,8 +226,8 @@ myfigs <- list()
 
 
 ### ### ### ###
-#### FIG 1 ####
-(myfigs[[1]] <- plot_grid(
+#### FIG GCS lac operon ####
+(myfigs[['GCS_lac']] <- plot_grid(
   # LEFT COL
   plot_grid(
     NULL,
@@ -284,13 +311,13 @@ myfigs <- list()
   nrow = 1, rel_widths = c(.85, 1, 1)
 ) )
 
-save_plot(here("plots", "figs", "GCS_MoM_lac_fig1.pdf"), myfigs[[1]],
+save_plot(here("plots", "figs", "GCS_MoM_lac_fig_lac.pdf"), myfigs[['GCS_lac']],
           base_height=NULL, base_width=4.75 * 14/7, # 2 cols
           base_asp = 2 )
 
 
 ### ### ### ###
-#### FIG 2 ####
+#### FIG native + cm ####
 (myplots[['Cline_You2013']] <- 
    bind_rows(
      tribble(
@@ -385,41 +412,44 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig1.pdf"), myfigs[[1]],
   align='hv'
 ) )
 
-save_plot(here("plots", "figs", "GCS_MoM_lac_fig2.pdf"), myfigs[[2]],
+save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[[2]],
           base_height=NULL, base_width=2.25 * 14/7, # 1 col
           base_asp = 1
 )
 
 
 ### ### ### ###
-#### FIG 3 ####
-(myfigs[[3]] <- plot_grid(
+#### FIG GCS with regulation ####
+(myfigs[['GCS_regul']] <- plot_grid(
   # plots row
   plot_grid(
-    plot_grid(
+    myplots[['critic_conc_monod']] +
+      # labs(y=expression(paste("critical nutrient concentration ", c/c[0])) ) +
+      labs(y="critical nutrient\nconcentration c/c0") +
+      # labs(y="critical nutrient<br/>concentration c/c<sub>0</sub>") +
+      # theme(axis.title.x = element_markdown()) +
       NULL,
-      NULL,
-      nrow=1),
+    
     myplots[['sugarmix_crp']] +
       expand_limits(x=c(-.1, 1.3)) +
       coord_cartesian(xlim=c(0, 1.15), ylim=c(0, NA)) +
       theme(legend.position = 'right') +
       NULL,
-    ncol=1, rel_heights = c(1, .9), labels = c("A", "C")),
+    ncol=1, rel_heights = c(1, 1), labels = c("A", "C")),
   
   myplots[['sugarmix_induction']](.xbreaks = 2 * 10^(-1:2)),
   
   nrow=1, rel_widths = c(1, 1.4), labels=c("", "B")
 ) )
-save_plot(here("plots", "figs", "GCS_MoM_lac_fig3.pdf"), myfigs[[3]],
+save_plot(here("plots", "figs", "GCS_MoM_lac_fig_regul.pdf"), myfigs[['GCS_regul']],
           base_height=NULL, base_width=4.75 * 14/7, # 2 cols
           base_asp = 1.8
 )
 
 
 ### ### ### ###
-#### FIG 4 ####
-(myfigs[[4]] <- plot_grid(
+#### FIG Models ####
+(myfigs[['GCS_models']] <- plot_grid(
   # plots row
   plot_grid(
     NULL, NULL, NULL,
@@ -434,7 +464,7 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig3.pdf"), myfigs[[3]],
   ncol=1, rel_heights=c(1, 1)
 ) )
 
-save_plot(here("plots", "figs", "GCS_MoM_lac_fig4.pdf"), myfigs[[4]],
+save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_models']],
           base_height=NULL, base_width=4.75 * 14/7, # 2 cols
           base_asp = 1.95
 )

@@ -535,11 +535,11 @@ For the manuscript, we focus on low illumination data.
                     filter(between(time_sec/3600, 14, 15.99)) %>%
                     # filter(time_sec/3600==8+7) %>%
                     # filter(irate_npoints>3, ir2_ll_time>0.8) %>% 
-                    left_join(myframes %>% select(condition, date, pos, gl, id, time_sec, length_um, gfp_nb)) %>% 
-                    filter((str_detect(condition, 'lactulose_TMG20$') & gfp_nb/length_um > 250) |
-                             condition %in% c('switch_glycerol_TMG20', 'switch_lactulose'))
-                  # filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose'), 
-                  # !str_detect(condition, 'Illum'))
+                    # left_join(myframes %>% select(condition, date, pos, gl, id, time_sec, length_um, gfp_nb)) %>% 
+                    # filter((str_detect(condition, 'lactulose_TMG20$') & gfp_nb/length_um > 250) |
+                    #          condition %in% c('switch_glycerol_TMG20', 'switch_lactulose'))
+                  filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose'),
+                  !str_detect(condition, 'Illum'))
     ) +
     geom_freqpoly(aes(lty='0 h'), binwidth=.08) +
     coord_cartesian(xlim=c(-0.4, 1.2)) +
@@ -561,25 +561,27 @@ For the manuscript, we focus on low illumination data.
     left_join(myframes) %>% 
     # filter(between(time_sec/3600, 14+18/60, 15.99+18/60)) %>%
     filter(between(time_sec/3600, 15, 16.99)) %>%
+    # filter(time_sec/3600==8+7) %>%
     # mutate(condition=fct_relevel(fct_drop(condition), "switch_glycerol_TMG20", after=2)) %>%
     mutate(condition=factor(as.character(condition))) %>% 
     group_by(condition) %>%
     mutate(gfp_conc_cut=Hmisc::cut2(gfp_nb/length_um, cuts=seq(-100, 2e4, 100), levels.mean=TRUE)) %>% 
     # summarise(n=n(), r2=cor(igfp_nb, islope_ll_time)^2)
-    (function(.df) 
-      ggplot(.df, aes(gfp_nb/length_um, islope_ll_time/log(2)*3600, col=condition)) +
-       facet_wrap(~condition, labeller=as_labeller(rename_conds)) +
-       # geom_density2d() +  
-       # geom_point(alpha=.1, stroke=0, data=.df) +
-       geom_point(alpha=.2, stroke=0, data=sample_n(ungroup(.df), 5e3)) +
-       stat_summary(aes(as.numeric(as.character(gfp_conc_cut))), fun.data=mean_se, geom="pointrange", col='black') +
-       geom_hline(yintercept=0.1, lty='dotted') + geom_vline(xintercept = 250, lty='dotted') +
-       myscales[['lacl_gly']] +
-       coord_cartesian(xlim=c(-50, 1500), ylim=c(-0.15, 1)) +
-       guides(col='none') +
-       labs(x='LacZ-GFP concentration (molecules/µm)', y='instantaneous growth rate (dbl/h)') +
-       NULL
-    ))
+    ggplot(aes(gfp_nb/length_um, islope_ll_time/log(2)*3600, col=condition)) +
+    facet_wrap(~condition, labeller=as_labeller(rename_conds)) +
+    # geom_density2d() +  
+    # geom_point(alpha=.1, stroke=0, data=.df) +
+    geom_point(alpha=.2, stroke=0, 
+               data = ~sample_n(ungroup(.), 5e3)
+    ) +
+    stat_summary(aes(as.numeric(as.character(gfp_conc_cut))), fun.data=mean_se, geom="pointrange", col='black') +
+    geom_hline(yintercept=0.1, lty='dotted') + geom_vline(xintercept = 250, lty='dotted') +
+    myscales[['lacl_gly']] +
+    coord_cartesian(xlim=c(-50, 1500), ylim=c(-0.15, 1)) +
+    guides(col='none') +
+    labs(x='LacZ-GFP concentration (molecules/µm)', y='instantaneous growth rate (dbl/h)') +
+    NULL
+)
 
 (myplots[['lacl_gfp_facets']] <-
     myrates_lactulose %>% 
@@ -624,7 +626,7 @@ For the manuscript, we focus on low illumination data.
           !str_detect(condition, 'Illum')) %>% 
    filter(between(time_sec/3600, 15, 15.99)) %>%
    # filter(between(time_sec/3600, 16, 18)) %>%
-   filter(time_sec/3600==8+7) %>%
+   # filter(time_sec/3600==8+7) %>%
    # filter(irate_npoints>3, ir2_ll_time>0.8) %>% 
    left_join(myframes %>% select(condition, date, pos, gl, id, time_sec, length_um, gfp_nb)) %>% 
    mutate(type=ifelse(gfp_nb/length_um > 250, 'induced', 'non induced')) %>% 
@@ -643,6 +645,26 @@ For the manuscript, we focus on low illumination data.
    theme(legend.position='top') +
    NULL
 )
+
+```
+
+```{r eval=FALSE}
+# fraction of induced cells between 7 and 8h
+myrates_lactulose %>% 
+  ungroup() %>% 
+  filter(condition == "switch_lactulose_TMG20") %>% 
+  filter(between(time_sec/3600, 15, 15.99)) %>%
+  left_join(myframes %>% select(condition, date, pos, gl, id, time_sec, length_um, gfp_nb)) %>% 
+  mutate(type=ifelse(gfp_nb/length_um > 250, 'induced', 'non induced')) %>% 
+  group_by(cell) %>% 
+  summarise(induced=sum(type=="induced")/n()) %>% 
+  # ggplot(aes(induced)) +
+  # stat_ecdf()
+  # geom_freqpoly()
+  mutate(type=NA,
+         type=ifelse(induced<0.2, 'non induced', type),
+         type=ifelse(induced>0.8, 'induced', type) ) %>% 
+  summarise(n_i=sum(type=="induced", na.rm=T), n=n(), p_i = n_i/n)
 
 ```
 
@@ -693,6 +715,31 @@ For the manuscript, we focus on low illumination data.
    .simplify_time_labels=FALSE) 
 
 ```
+
+```{r eval=FALSE}
+
+myrates_lactulose %>% ungroup() %>% 
+  filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose'), 
+         !str_detect(condition, 'Illum')) %>% 
+  # # left_join(myframes_switching %>% select(condition, date, pos, gl, id, time_sec, switch_idx, t_lac_switch )) %>% 
+  # filter(switch_idx==1) %>% 
+  mutate(time_switch = time_sec - 480*60) %>% 
+  filter(between(time_switch, -3600, 8*3600) ) %>% 
+  mutate(time_bin = cut_width(time_switch/3600, width = 1, boundary = 0)) %>% 
+  
+  left_join(myframes %>% select(condition, date, pos, gl, id, time_sec, length_um, gfp_nb)) %>% 
+  mutate(igr = islope_ll_time/log(2)*3600,
+         gfp_c = gfp_nb / length_um) %>% 
+  filter(!is.na(igr)) %>% 
+  filter(condition %in% c("switch_lactulose_TMG20", "switch_glycerol_TMG20"),
+         time_bin %in% c("[-1,0]", "(0,1]", "(7,8]")) %>% 
+  group_by(condition, time_bin, date, pos, gl, id) %>%
+  summarise(n_p=n()) %>% 
+  group_by(condition, time_bin, date) %>% 
+  summarise(n=n())
+
+```
+
 
 ```{r}
 (myplots[['lacl_boxpl']] <-

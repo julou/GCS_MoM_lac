@@ -39,12 +39,17 @@ mytables[['lacl_list']] %>%
   #           base_height=NULL, base_width=4.75 * 14/7, # 2 cols
   #           base_aspect_ratio = 2)
 
+# plot_grid(
+#   myplots[['TMG_induction_gly04']],
+#   myplots[['lags_hist_lacl']],
+#   nrow=1, labels=c('A', 'B'), align="h"
+# )
 plot_grid(
   plot_grid(
     myplots[['TMG_induction_gly04']],
     myplots[['lags_hist_lacl']],
-    nrow=1, labels=c('A', 'C'), align="h"
-    ),
+    nrow=1, labels=c('A', 'B'), align="h"
+  ),
   myplots[['TMG_switch_gr_hist']] +
     theme_cowplot_legend_inset(),
   ncol=1, labels=c("", "B"), rel_heights=c(1, 1.2)
