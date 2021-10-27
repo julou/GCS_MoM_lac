@@ -229,10 +229,18 @@ myfigs <- list()
 #### FIG GCS lac operon ####
 (myfigs[['GCS_lac']] <- plot_grid(
   # LEFT COL
+  # plot_grid(
+  #   NULL,
+  #   myplots[['lac_model_const_phdiag']],
+  #   # ggdraw( myplots[['lac_model_const_phdiag']] ) +
+  #   #   draw_plot( myplots[['lac_model_induction']] , .45, .45, .5, .5),
+  #   ncol=1, rel_heights = c(1, 1.1), labels=c("A", "B")
+  # ),
   plot_grid(
     NULL,
+    myplots[['lac_model_induction']],
     myplots[['lac_model_const_phdiag']],
-    ncol=1, rel_heights = c(1, 1.1), labels=c("A", "B")
+    ncol=1, rel_heights = c(1, 0.7, 0.8), labels=c("AUTO")
   ),
   
   # MID COL
@@ -423,23 +431,45 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[[2]],
 (myfigs[['GCS_regul']] <- plot_grid(
   # plots row
   plot_grid(
+    myplots[['sugarmix_crp']] +
+      expand_limits(x=c(-.1, 1.3)) +
+      coord_cartesian(xlim=c(0, 1.15), ylim=c(0, NA)) +
+      # theme(legend.position = 'right') +
+      theme(legend.position = c(1, 1), legend.justification = c(1, 1)) +
+      NULL,
     myplots[['critic_conc_monod']] +
       # labs(y=expression(paste("critical nutrient concentration ", c/c[0])) ) +
       labs(y="critical nutrient\nconcentration c/c0") +
       # labs(y="critical nutrient<br/>concentration c/c<sub>0</sub>") +
       # theme(axis.title.x = element_markdown()) +
       NULL,
-    
-    myplots[['sugarmix_crp']] +
-      expand_limits(x=c(-.1, 1.3)) +
-      coord_cartesian(xlim=c(0, 1.15), ylim=c(0, NA)) +
-      theme(legend.position = 'right') +
-      NULL,
-    ncol=1, rel_heights = c(1, 1), labels = c("A", "C")),
+    ncol=1, rel_heights = c(1, 1), labels = c("A", "B")),
   
   myplots[['sugarmix_induction']](.xbreaks = 2 * 10^(-1:2)),
   
-  nrow=1, rel_widths = c(1, 1.4), labels=c("", "B")
+  plot_grid(
+    myplots_miller[['GCS_cm_maxindct']](strain=='MG1655') +
+      scale_x_continuous(breaks=c(0, 0.5, 1)) +
+      coord_cartesian(xlim=c(0, 1.25), ylim=c(0, NA)) +
+      expand_limits(x=c(-.1, 1.4)) +
+      labs(y='max [LacZ] (MU)      ') +
+      theme(legend.position = 'none') +
+      NULL,
+    myplots_miller[['GCS_cm']](strain=='MG1655', .with_sugar_data=TRUE) +
+      # geom_point(aes(x2, y2), col="gray85", data=
+      #              myplots_miller[['GCS_sugars']]() %>% layer_data(2) %>% mutate(x2=exp(x), y2=exp(y)) ) +
+      guides(shape='none') +
+      scale_color_viridis_c(breaks=c(0,4,8)) +
+      theme_cowplot_legend_inset() +
+      labs(y="critical [TMG] (µM)      ", col="[cam]\n(µM)") +
+      theme(legend.position = "right", legend.key.height = unit(10, "pt")) +
+      guides(col=guide_colourbar(direction = "horizontal", title.position = "left", barwidth=unit(58, 'pt'))) +
+      theme(legend.position = 'top') +
+      # theme(legend.position = c(0.03,0.03), legend.justification = c(0,0)) +
+      NULL,
+    ncol=1, rel_heights = c(1, 1.2), labels = c("D", "E")), align='v',
+  
+  nrow=1, rel_widths = c(1.1, 1.5, 1), labels=c("", "C", "")
 ) )
 save_plot(here("plots", "figs", "GCS_MoM_lac_fig_regul.pdf"), myfigs[['GCS_regul']],
           base_height=NULL, base_width=4.75 * 14/7, # 2 cols

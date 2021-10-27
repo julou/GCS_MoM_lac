@@ -74,7 +74,7 @@ plot_grid(
 
 
 ############
-# MILLER ASSAY
+# MILLER ASSAY ####
 plot_grid(
   myplots_miller[['GCS_MA_examples']] + 
     theme_cowplot_legend_inset(),
@@ -176,6 +176,82 @@ plot_grid(
 #   save_plot(here("plots", "SI_figs", "miller-cm-maxindn.pdf"), .,
 #             base_height=NULL, base_width=2.25 * 14/7, # 1 col
 #             base_aspect_ratio = 1)
+
+
+
+#### FIG native + cm ####
+(myplots[['Cline_You2013']] <- 
+   bind_rows(
+     tribble(
+       # Table S1 from You, et al. 2013
+       ~c_source, ~gr, ~gr_se, ~LacZ, ~LacZ_se,
+       "60 mM acetate", 0.37, 0.00, 20.8, 0.3,
+       "20 mM arabinose", 0.40, 0.01, 22.8, 0.1,
+       "20 mM mannose", 0.41, 0.00, 20.4, 1.8,
+       "15 mM succinate", 0.46, 0.01, 20.4, 0.5,
+       "20 mM sorbitol", 0.46, 0.01, 18.4, 0.2,
+       "20 mM pyruvate", 0.61, 0.02, 15.6, 1.7,
+       "20 mM fructose", 0.61, 0.02, 17.3, 0.1,
+       "0.4% (v/v) glycerol", 0.63, 0.01, 16.4, 0.2,
+       "0.2% (w/v) maltose", 0.67, 0.00, 15.8, 0.3,
+       "0.4% (w/v) glucose", 0.85, 0.00, 8.23, 0.21,
+       "20 mM gluconate", 0.88, 0.04, 9.45, 0.99,
+       "0.2% (w/v) lactose", 0.98, 0.01, 5.80, 0.09,
+       "10 mM glucose-6P+10 mM gluconate", 1.09, 0.01, 1.87, 0.14,
+     ) %>% mutate(type="C source"), 
+     tribble(
+       # Table S2 from You, et al. 2013
+       ~mba , ~gr, ~gr_se, ~LacZ, ~LacZ_se,
+       0, 0.39, 0.01, 18.8, 0.9, 
+       12.5, 0.48, 0.01, 17.2, 0.8, 
+       25, 0.57, 0.01, 14.9, 0.7, 
+       50, 0.63, 0.01, 13.2, 0.6, 
+       100, 0.70, 0.01, 11.4, 0.5, 
+       200, 0.78, 0.02, 12.0, 0.6, 
+       500, 0.84, 0.02, 9.58, 0.44
+     ) %>% mutate(type='titr. LacY')
+   ) %>% 
+   mutate(LacZ=1e3*LacZ, LacZ_se=1e3*LacZ_se) %>% 
+   # filter()
+   ggplot(aes(gr, LacZ, col=type)) +
+   # stat_smooth(aes(col=type), method='lm', se=FALSE, fullrange=TRUE) +
+   geom_errorbar(aes(ymin=LacZ-LacZ_se, ymax=LacZ+LacZ_se, width=0), data=~filter(., type=='C source')) +
+   geom_errorbarh(aes(xmin=gr-gr_se, xmax=gr+gr_se, height=0), data=~filter(., type=='C source')) +
+   geom_point(size=2, data=~filter(., type=='C source')) +
+   stat_smooth(method='lm', se=FALSE, fullrange=TRUE, col='gray20') +
+   geom_errorbar(aes(ymin=LacZ-LacZ_se, ymax=LacZ+LacZ_se, width=0), data=~filter(., type=='titr. LacY')) +
+   geom_errorbarh(aes(xmin=gr-gr_se, xmax=gr+gr_se, height=0), data=~filter(., type=='titr. LacY')) +
+   geom_point(size=2, data=~filter(., type=='titr. LacY')) +
+   scale_colour_grey(start=0, end=.8, limits=c('titr. LacY', 'C source'), guide='none') +
+   expand_limits(x=c(0, 1.2), y=33) +
+   labs(x='growth rate (dbl/h)', y='max [LacZ] (MU)') +
+   NULL)
+
+
+# ggplot() +
+#   stat_function(aes(col='CRP-like'), fun=function(.x) 1-.x) +
+#   stat_function(aes(col='other'), fun=function(.x) exp(-.x*5)) +
+#   xlim(0, 1) +
+#   labs(x='growth rate', y='max expression', col='regulation') +
+#   theme(axis.text = element_blank(), axis.ticks = element_blank(),
+#         legend.position = c(1,1), legend.justification = c(1,1)) +
+#   NULL
+
+plot_grid(
+  myplots[['Cline_You2013']] +
+    scale_x_continuous(breaks=c(0, 0.5, 1)) +
+    coord_cartesian(xlim=c(0, 1.25), ylim=c(0, NA)) +
+    expand_limits(x=c(-.1, 1.4)) +
+    labs(y='max [LacZ] (MU)      ') +
+    NULL,
+  myplots[['lac_model_crp_phdiag']],
+  NULL,
+  nrow=1, labels="AUTO") %>% 
+  save_plot(here("plots", "SI_figs", "native-lac-model.pdf"), .,
+            base_height=NULL, base_width=4.75 * 14/7, # 2 cols
+            base_aspect_ratio = 2.9)
+  
+
 
 ###### #
 # SUGAR MIXTURES ####
