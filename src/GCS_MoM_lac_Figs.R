@@ -78,74 +78,92 @@ myfigs <- list()
     NULL
 )
 
-(myplots[['autoactiv_model_induction']] <-
-   tibble(path=list.files(here("material", "Erik_models"), "autoactivating_induc_.*", full.names = TRUE)) %>% 
-   mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
-   unnest(data) %>% 
-   extract(path, c('branch'), ".*/autoactivating_induc_(.+)\\.txt") %>% 
-   ggplot() +
-   geom_line(aes(exp(X1), exp(X2), lty=branch)) +
-   scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
-   scale_y_log10(breaks=c(1e-1, 1e1, 1e3),
-                 # breaks = trans_breaks("log10", function(x) 10^x),
-                 labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-   labs(x='doubling time (h)', y=expression(paste('operon expression ', italic('x')))) +
-   scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dotted')) +
-   theme(legend.position = 'none') +
-   NULL
-)
-
 (myplots[['autoactiv_model_phdiag']] <-
     tibble(path=list.files(here("material", "Erik_models"), "autoactivating_phasediagram_.*", full.names = TRUE)) %>% 
     mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
     unnest(data) %>% 
     extract(path, c('curve'), ".*/autoactivating_phasediagram_(.+)\\.txt") %>% 
-    (function(.df)
-      ggplot(.df) +
-       geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
-                    data=bind_rows(.df, tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
-                                   tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')) ))) +
+    ggplot() +
+    geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
+                 data=~bind_rows(., tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
+                                 tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')) )) +
     geom_line(aes(exp(X1), exp(X2), col=curve)) +
-    geom_hline(yintercept = 0.014269, lty='dashed') +
+    geom_hline(yintercept = 0.061, lty='dashed') +
     annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
     # annotate("text", x=Inf, y=0, label='uninduced', hjust=1.1, vjust=-1.1) +
     annotate("text", x=Inf, y=Inf, label='induced', hjust=1.1, vjust=1.5) +
     scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
-    scale_y_log10(breaks=c(1e-4, 1e-2, 1), expand=c(0, 0),
+    scale_y_log10(breaks=c(1e-3, 1e-1, 10), expand=c(0, 0),
                   # breaks = trans_breaks("log10", function(x) 10^x),
                   labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    expand_limits(x=.35, y=c(7e-5, 7)) +
-    labs(x='doubling time (h)', y='promoter activity   ') +
+    expand_limits(x=.35, y=c(2e-4, 20)) +
+    labs(x='doubling time (h)', y='basal production rate       ') +
     # scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dashed')) +
     scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
     theme(legend.position = 'none') +
     NULL
 )
 
-(myplots[['signal_dep_decay']] <-
+(myplots[['autoactiv_model_induction']] <-
+    tibble(path=list.files(here("material", "Erik_models"), "autoactivating_induc_.*", full.names = TRUE)) %>% 
+    mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
+    unnest(data) %>% 
+    extract(path, c('branch'), ".*/autoactivating_induc_(.+)\\.txt") %>% 
+    ggplot() +
+    geom_line(aes(exp(X1), exp(X2), lty=branch)) +
+    scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
+    scale_y_log10(breaks=c(1e-1, 1e1, 1e3),
+                  # breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+    labs(x='doubling time (h)', y=expression(paste('TF concentration ', italic('x'), '            '))) +
+    scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dotted')) +
+    theme(legend.position = 'none') +
+    NULL
+)
+
+(myplots[['signal_dep_decay_phdiag']] <-
     tibble(path=list.files(here("material", "Erik_models"), "signal_coupled_decay_pd_.*", full.names = TRUE)) %>% 
     mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
     unnest() %>% 
     extract(path, c('curve'), ".*/signal_coupled_decay_pd_(.+)\\.txt") %>% 
     # with(range(X1))
-    (function(.df)
-      ggplot(.df) +
-       geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
-                    data=bind_rows(.df, tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
-                                   tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')) ))) +
+    ggplot() +
+    geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
+                 data=~bind_rows(., tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
+                                 tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')) )) +
     geom_line(aes(exp(X1), exp(X2), col=curve)) +
-    # geom_hline(yintercept = 0.014269, lty='dashed') +
-    # annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
-    annotate("text", x=Inf, y=0, label='uninduced', hjust=1.1, vjust=-1.1) +
+    geom_hline(yintercept = 100, lty='dashed', col='gray50') +
+    geom_hline(yintercept = 1e4, lty='dashed') +
+    annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
+    # annotate("text", x=Inf, y=0, label='uninduced', hjust=1.1, vjust=-1.1) +
     annotate("text", x=Inf, y=Inf, label='induced', hjust=1.1, vjust=1.5) +
-    scale_x_log10(limits=c(.5, 1e3), breaks=c(1, 24, 500), expand=c(0, 0)) +
-    scale_y_log10(limits=c(8, 1e5), breaks=c(1e2, 1e4), expand=c(0, 0),
+    # scale_x_log10(limits=c(.5, 1e3), breaks=c(1, 24, 500), expand=c(0, 0)) +
+    scale_x_log10(limits=c(.5, 1000), breaks=c(1, 10, 100), expand=c(0, 0)) +
+    scale_y_log10(limits=c(.4, 1e5), breaks=c(1, 1e2, 1e4), expand=c(0, 0),
                   # breaks = trans_breaks("log10", function(x) 10^x),
                   labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    expand_limits(x=.35) +
     # labs(x='doubling time (h)', y=expression(paste('signal strength ', italic('s'), '/', italic('s[0]')))) +
     labs(x='doubling time (h)', y=expression(paste('signal strength ', s / s[0], '     ' ))) +
     scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
+    theme(legend.position = 'none') +
+    NULL
+)
+
+(myplots[['signal_dep_decay_induction']] <-
+    tibble(path=list.files(here("material", "Erik_models"), "competence_induc_s100.*", full.names = TRUE)) %>% 
+    mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
+    extract(path, c('signal', 'branch'), ".*/competence_induc_s(\\d+)_(.+)\\.txt") %>% 
+    unnest(data) %>% 
+    ggplot() +
+    geom_line(aes(exp(X1), exp(X2), lty=branch, col=signal, group=interaction(signal, branch))) +
+    # scale_x_log10(limits=c(.5, 1e3), breaks=c(1, 24, 480), expand=c(0, 0)) +
+    scale_x_log10(limits=c(.5, 1000), breaks=c(1, 10, 100), expand=c(0, 0)) +
+    scale_y_log10(breaks=c(1e-1, 1e1, 1e3),
+                  # breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+    labs(x='doubling time (h)', y=expression(paste('TF concentration ', italic('x'), '            '))) +
+    scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dotted')) +
+    scale_color_manual(values=c('100'='grey50', '10000'='black')) +
     theme(legend.position = 'none') +
     NULL
 )
@@ -156,24 +174,44 @@ myfigs <- list()
     unnest(data) %>% 
     extract(path, c('curve'), ".*/twocomp_phasediagram_(.+)\\.txt") %>% 
     # with(range(X1))
-    (function(.df)
-      ggplot(.df) +
-       geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
-                    data=bind_rows(.df, tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
-                                   tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')) ))) +
+    ggplot() +
+    geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
+                 data=~bind_rows(., tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
+                                 tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')) )) +
     geom_line(aes(exp(X1), exp(X2), col=curve)) +
-    # geom_hline(yintercept = 0.014269, lty='dashed') +
+    geom_vline(xintercept = 2, lty='dashed', col='gray50') +
+    geom_vline(xintercept = 20, lty='dashed') +
     annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
     # annotate("text", x=Inf, y=0, label='uninduced', hjust=1.1, vjust=-1.1) +
     annotate("text", x=Inf, y=Inf, label='induced', hjust=1.1, vjust=1.5) +
-    scale_x_log10(breaks=c(1, 24, 1000), expand=c(0, 0)) +
-    scale_y_log10(breaks=c(1e-3, 1, 1e3), expand=c(0, 0),
+    # scale_x_log10(limits=c(.5, 500), breaks=c(1, 24, 480), expand=c(0, 0)) +
+    scale_x_log10(limits=c(.5, 500), breaks=c(1, 10, 100), expand=c(0, 0)) +
+    scale_y_log10(breaks=c(1e-6, .01, 1e2), expand=c(0, 0),
                   # breaks = trans_breaks("log10", function(x) 10^x),
                   labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    expand_limits(x=.15, y=c(2e-6, 7)) +
+    expand_limits(x=.5, y=c(2e-8, 7)) +
     # labs(x='doubling time (h)', y=expression(paste('signal strength ', italic('s'), '/', italic('s[0]')))) +
     labs(x='doubling time (h)', y=expression(paste('signal strength ', s / s[0], '     ' ))) +
     scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
+    theme(legend.position = 'none') +
+    NULL
+)
+
+(myplots[['twocmps_model_induction']] <-
+    tibble(path=list.files(here("material", "Erik_models"), "twocomp_induc_td2.*", full.names = TRUE)) %>% 
+    mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
+    extract(path, c('dt', 'branch'), ".*/twocomp_induc_td(\\d+)_(.+)\\.txt") %>% 
+    unnest(data) %>% 
+    ggplot() +
+    geom_line(aes(exp(X1), exp(X2), lty=branch, col=dt, group=interaction(dt, branch))) +
+    scale_x_log10(breaks=c(.01, .1, 1, 10), expand=c(0, 0)) +
+    scale_y_log10(breaks=c(1e-1, 1e1, 1e3),
+                  # breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+    expand_limits(y=c(1e-1, 1e3)) +
+    labs(x=expression(paste('signal strength ', s / s[0], '     ' )), y=expression(paste('TF concentration ', italic('x'), '            '))) +
+    scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dotted')) +
+    scale_color_manual(values=c('2'='grey50', '20'='black')) +
     theme(legend.position = 'none') +
     NULL
 )
@@ -226,6 +264,27 @@ myfigs <- list()
 
 
 ### ### ### ###
+#### FIG Models ####
+(myfigs[['GCS_models']] <- plot_grid(
+    NULL, 
+    myplots[['autoactiv_model_phdiag']], 
+    myplots[['autoactiv_model_induction']], 
+    NULL, 
+    myplots[['signal_dep_decay_phdiag']], 
+    myplots[['signal_dep_decay_induction']], 
+    NULL,
+    myplots[['twocmps_model_phdiag']], 
+    myplots[['twocmps_model_induction']], 
+    nrow=3, byrow=FALSE, align='vh', labels=LETTERS[c(1, 4, 7, 2, 5, 8, 3, 6, 9)], rel_heights=c(1.2, 1.2, 1)
+) )
+
+save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_models']],
+          base_height=NULL, base_width=4.75 * 14/7, # 2 cols
+          base_asp = 1.5
+)
+
+
+### ### ### ###
 #### FIG GCS lac operon ####
 (myfigs[['GCS_lac']] <- plot_grid(
   # LEFT COL
@@ -238,9 +297,11 @@ myfigs <- list()
   # ),
   plot_grid(
     NULL,
-    myplots[['lac_model_induction']],
-    myplots[['lac_model_const_phdiag']],
-    ncol=1, rel_heights = c(1, 0.7, 0.8), labels=c("AUTO")
+    myplots[['lac_model_const_phdiag']] +
+      labs(y=expression(paste('inducer level ', italic('b'), '      ')) ),
+    myplots[['lac_model_induction']] +
+      labs(y="LacY molecules         "),
+    ncol=1, rel_heights = c(1, 1, 1), labels=c("AUTO")
   ),
   
   # MID COL
@@ -249,9 +310,9 @@ myfigs <- list()
     
     plot_grid(
       myplots[['lacl_boxpl_subset']](igr, 
-                                    condition %in% c("switch_lactulose_TMG20", "switch_glycerol_TMG20"),
-                                    time_bin %in% c("[-1,0]", "(0,1]", "(7,8]"),
-                                    .simplify_time_labels=TRUE) +
+                                     condition %in% c("switch_lactulose_TMG20", "switch_glycerol_TMG20"),
+                                     time_bin %in% c("[-1,0]", "(0,1]", "(7,8]"),
+                                     .simplify_time_labels=TRUE) +
         geom_rect(xmin=-Inf, xmax=1.5, ymin=-Inf, ymax=Inf, fill='black', alpha=.03) +
         scale_colour_manual(values=c("non induced"="gray25", "induced"=qual_cols[3], "non growing"=qual_cols[1], "growing"=qual_cols[2]),
                             breaks=c("non induced", "induced", "growing", "non growing"),
@@ -268,14 +329,14 @@ myfigs <- list()
         NULL,
       
       myplots[['lacl_boxpl_subset']](gfp_c,
-                                    condition %in% c("switch_lactulose_TMG20", "switch_glycerol_TMG20"),
-                                    time_bin %in% c("[-1,0]", "(0,1]", "(7,8]"),
-                                    .simplify_time_labels=TRUE) +
+                                     condition %in% c("switch_lactulose_TMG20", "switch_glycerol_TMG20"),
+                                     time_bin %in% c("[-1,0]", "(0,1]", "(7,8]"),
+                                     .simplify_time_labels=TRUE) +
         geom_rect(xmin=-Inf, xmax=1.5, ymin=-Inf, ymax=Inf, fill='black', alpha=.03) +
         scale_colour_manual(values=c("non induced"="gray25", "induced"=qual_cols[3], "non growing"=qual_cols[1], "growing"=qual_cols[2]),
                             limits=c("non induced", "induced", "growing", "non growing"), 
                             guide=guide_legend(ncol=2)
-                            ) +
+        ) +
         coord_cartesian(ylim=c(NA, 1400)) +
         labs(y="[LacZ-GFP]          \n(FP/µm)          ", col="") +
         theme_cowplot_legend_inset() +
@@ -290,7 +351,7 @@ myfigs <- list()
       
       ncol=1, rel_heights = c(.4, .6), align = "v" ), 
     
-    ncol=1, rel_heights = c(1, 1.1), labels = c("C", "")
+    ncol=1, rel_heights = c(1, 1.1), labels = c("D", "")
   ),
   
   # RIGHT COL
@@ -301,7 +362,7 @@ myfigs <- list()
       theme(legend.position = 'bottom', legend.box.spacing=unit(-1, "line"),
             legend.box.margin=margin(l=-48), # shift the whole legend horizontally
             # legend.margin=margin(t=-20),
-            ) +
+      ) +
       guides(col=guide_legend(title="", direction = "vertical", ncol=2, )) +
       # coord_cartesian(xlim=c(.2, NA), ylim=c(.5, 1000)) +
       labs(title=" ", y=expression('p'['lac']*' activity (MU/h)    ')) +
@@ -313,7 +374,7 @@ myfigs <- list()
       # theme_cowplot_legend_inset() +
       labs(y='critical [TMG] (µM)  ') +
       NULL,
-    ncol=1, rel_heights = c(1.3, 1), labels = c("D", "E"), align="v", axis="l"
+    ncol=1, rel_heights = c(1.3, 1), labels = c("E", "F"), align="v", axis="l"
   ),
   
   nrow = 1, rel_widths = c(.85, 1, 1)
@@ -321,7 +382,7 @@ myfigs <- list()
 
 save_plot(here("plots", "figs", "GCS_MoM_lac_fig_lac.pdf"), myfigs[['GCS_lac']],
           base_height=NULL, base_width=4.75 * 14/7, # 2 cols
-          base_asp = 2 )
+          base_asp = 1.8 )
 
 
 ### ### ### ###
@@ -431,17 +492,17 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[[2]],
 (myfigs[['GCS_regul']] <- plot_grid(
   # plots row
   plot_grid(
-    myplots[['sugarmix_crp']] +
-      expand_limits(x=c(-.1, 1.3)) +
-      coord_cartesian(xlim=c(0, 1.15), ylim=c(0, NA)) +
-      # theme(legend.position = 'right') +
-      theme(legend.position = c(1, 1), legend.justification = c(1, 1)) +
-      NULL,
     myplots[['critic_conc_monod']] +
       # labs(y=expression(paste("critical nutrient concentration ", c/c[0])) ) +
       labs(y="critical nutrient\nconcentration c/c0") +
       # labs(y="critical nutrient<br/>concentration c/c<sub>0</sub>") +
       # theme(axis.title.x = element_markdown()) +
+      NULL,
+    myplots[['sugarmix_crp']] +
+      expand_limits(x=c(-.1, 1.3)) +
+      coord_cartesian(xlim=c(0, 1.15), ylim=c(0, NA)) +
+      # theme(legend.position = 'right') +
+      theme(legend.position = c(1, 1), legend.justification = c(1, 1)) +
       NULL,
     ncol=1, rel_heights = c(1, 1), labels = c("A", "B")),
   
@@ -474,29 +535,6 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[[2]],
 save_plot(here("plots", "figs", "GCS_MoM_lac_fig_regul.pdf"), myfigs[['GCS_regul']],
           base_height=NULL, base_width=4.75 * 14/7, # 2 cols
           base_asp = 1.8
-)
-
-
-### ### ### ###
-#### FIG Models ####
-(myfigs[['GCS_models']] <- plot_grid(
-  # plots row
-  plot_grid(
-    NULL, NULL, NULL,
-    nrow=1, labels=c("A", "C", "E"), rel_widths=c(1, 1, 1)
-  ),
-  plot_grid(
-    myplots[['autoactiv_model_phdiag']], 
-    myplots[['signal_dep_decay']], 
-    myplots[['twocmps_model_phdiag']], 
-    nrow=1, labels=c("B", "D", "F"), rel_widths=c(1, 1, 1)
-  ),
-  ncol=1, rel_heights=c(1, 1)
-) )
-
-save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_models']],
-          base_height=NULL, base_width=4.75 * 14/7, # 2 cols
-          base_asp = 1.95
 )
 
 
