@@ -912,10 +912,10 @@ myrates_mix %>%
   filter(glu<2000) %>%
   # filter(., treatment=='lac002', glu==0, induced==1)
   ggplot(aes(glu, gr_mean)) +
-  geom_rect(aes(xmin=-Inf, xmax=Inf, ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, group=date), fill="grey10", alpha=.2,
-            data=~filter(., treatment=='lac002', glu==0, induced==1)) +
-  geom_hline(aes(yintercept=gr_mean, group=date), lty="dashed",
-             data=~filter(., treatment=='lac002', glu==0, induced==1)) +
+  # geom_rect(aes(xmin=-Inf, xmax=Inf, ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, group=date), fill="grey10", alpha=.2,
+  #           data=~filter(., treatment=='lac002', glu==0, induced==1)) +
+  # geom_hline(aes(yintercept=gr_mean, group=date), lty="dashed",
+  #            data=~filter(., treatment=='lac002', glu==0, induced==1)) +
   geom_pointrange(aes(ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, size=prop),
                   position=position_dodge2(width=.4), 
                   data=~filter(., treatment=='none')) +
@@ -934,17 +934,26 @@ myrates_mix %>%
   summarise(
     gr_mean=mean(grate/log(2)*3600),
     gr_sd  =sd(grate/log(2)*3600),
+    gr_re=gr_sd/sqrt(n()) / gr_mean,
+    dt_mean=mean(log(2)/grate/3600),
+    dt_sd  =sd(log(2)/grate/3600),
+    ymin=1/pmax(0, gr_mean+gr_sd), ymax=1/pmax(0, gr_mean-gr_sd),
     n=n(),
   ) %>%
-  group_by(date, condition) %>%
-  mutate(prop=n/sum(n)) %>%
   parse_sugarmix_conds(condition) %>%
   filter(treatment=='none') %>% 
   # filter(glu<1000) %>%
-  ggplot(aes(1/glu, 1/gr_mean)) +
+  ggplot(aes(1/glu/.18, 1/gr_mean)) +
   stat_smooth(method='lm', se=FALSE, col="gray40", fullrange=TRUE) +
-  geom_point() +
+  # geom_point() +
+  geom_hline(yintercept=0, lty="dotted") +
+  geom_pointrange(aes(ymin=1/pmax(0, gr_mean+gr_sd), ymax=1/pmax(0, gr_mean-gr_sd)),
+                  data=~filter(., 1/glu < 0.1)) +
+  geom_pointrange(aes(ymin=1/pmax(0, gr_mean+gr_sd), ymax=1/pmax(0, gr_mean-gr_sd)),
+                  data=~filter(., 1/glu > 0.1), position=position_jitter(width=.01, seed=53425)) +
   expand_limits(x=0, y=0) +
+  coord_cartesian(ylim=c(0, NA)) +
+  labs(x = "1 / [glucose] (L/mg)", y = "1 / growth rate (h)") +
   theme_cowplot() +
   NULL
 
