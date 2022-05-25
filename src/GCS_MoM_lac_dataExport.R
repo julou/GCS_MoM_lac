@@ -96,12 +96,6 @@
           stdout = fs::path(export_dir , paste0(fs::path_file(export_dir), '_fileList.txt')))
   message("Done listing files...")
 
-  system(paste0(
-    "(find ", export_dir, " -maxdepth 1 -type l -print0; find ", 
-    export_dir, " -mindepth 1 -type d -print0) | sort -z | xargs -r0 tree -l > ",
-    fs::path(export_dir , paste0(fs::path_file(export_dir), '_fileList.txt')) ))
-  # return()
-
   # compress experiment by experiment (and resolve symlinks)
   fs::dir_walk(export_dir, function(.p) {# browser();
     if (fs::is_dir(.p) | (fs::is_link(.p))) {
@@ -135,7 +129,7 @@ message("Job submitted for archiving ", .p)
 
 
 (function(export_dir = "/scicore/home/nimwegen/GROUP/MM_Data/Thomas/_GCSlacArticle/Julou_2022_GCS_GL_Images",
-          preproc_dir= "../../*preprocess*", .force=TRUE) {
+          preproc_dir= "../../*preprocess*", .force=FALSE) {
   # this anonymous function exports preprocessed image data (each series of each experiment in separate compressed files) after the following scheme:
   # - traverse R data to list all datasets used
   # - create symlink to each dataset (renamed in a systematic manner)
@@ -246,10 +240,6 @@ message("Job submitted for archiving ", .p)
     extract(path, "gl_dir", "(Pos\\d+_GL\\d+)\\.tiff?\\.csv", remove = FALSE) %>% 
     # identity()
     # tmp2 <- tmp %>%
-    
-    # TODO: rerun after data is restored by scicore
-    filter(!(date == 20210708 & pos == 20 & gl == 4),
-           !(date == 20210708 & pos == 20 & gl == 16) ) %>% 
     left_join(
       # Warning: there can be several preprocess directories... look only once per position for the correct one
       .,
@@ -276,8 +266,12 @@ message("Job submitted for archiving ", .p)
   # use bash command as fs doesnt allow to follow symlinks when traversing directories
   # # deprecated
   # system2("tree", c("-l", export_dir), stdout = fs::path(export_dir, paste0(fs::path_file(export_dir), '_fileList.txt')))
-  system2("find", c(export_dir, "-maxdepth 1 -type l -print0 | sort -z | xargs -r0 tree"), 
-          stdout = fs::path(export_dir, paste0(fs::path_file(export_dir), '_fileList.txt')))
+  # system2("find", c(export_dir, "-maxdepth 1 -type l -print0 | sort -z | xargs -r0 tree -l"), 
+  #         stdout = fs::path(export_dir, paste0(fs::path_file(export_dir), '_fileList.txt')))
+  system(paste0(
+    "(find ", export_dir, " -maxdepth 1 -type l -print0; find ", 
+    export_dir, " -mindepth 1 -type d -print0) | sort -z | xargs -r0 tree -l > ",
+    fs::path(export_dir , paste0(fs::path_file(export_dir), '_fileList.txt')) ))
   message("Done listing files...")
   
   # compress experiment by experiment (and resolve symlinks)
@@ -289,7 +283,8 @@ message("Job submitted for archiving ", .p)
       .f <- fs::path_file(.p)
       if (fs::file_exists(paste0(.p, '.tar.gz')) && !.force) {
         message ('skipping the archiving of ', .f)
-        fs::link_delete(.p)
+        try(fs::link_delete(.p))
+        try(fs::dir_delete(.p))
       } else {
         sprintf("sbatch <<EOF
 #!/bin/bash
@@ -311,7 +306,7 @@ EOF", .f, export_dir, .f, .f, .f) %>%
 })()
 
 
-(function(export_dir = "/scicore/home/nimwegen/GROUP/MM_Data/Thomas/_GCSlacArticle/Julou_2022_GCS_GL_Preproc") {
+                                                                                                                                                                                                            (function(export_dir = "/scicore/home/nimwegen/GROUP/MM_Data/Thomas/_GCSlacArticle/Julou_2022_GCS_GL_Preproc") {
   # this anonymous function exports parsed output (tabular data) after the following scheme:
   # - traverse R data to list all datasets used
   # - create symlink to each dataset (renamed in a systematic manner)
