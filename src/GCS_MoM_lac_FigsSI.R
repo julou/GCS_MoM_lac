@@ -1,13 +1,13 @@
 
 mytables[['lacl_list']] %>% 
   mutate(n_lags=ifelse(condition %in% c("switch_glycerol_TMG20", "switch_lactulose"), NA, n_lags)) %>% 
-  ungroup() %>% select(-condition) %>% rename(condition=label) %>%
+  ungroup() %>% select(-condition, -n_div_cells, -n_obs) %>% rename(condition=label) %>%
   mutate(condition=str_replace(condition, '>', ' to ')) %>%
   (function(.df)
     knitr::kable(.df, "latex", booktabs=TRUE, #longtable = TRUE,
-                 col.names=c('condition', 'date', '# growth channels', '# full cell cycles', '# observations',
-                             '# cells at switch', '# estimated lags', '# arrested cells at switch'),
-                 caption='List of experiments on growth-coupled sensitivity during transient growth arrest (Fig. 1C) with summary statistics.') %>%
+                 label="lactulose-list", 
+                 col.names=c('condition', 'date', '# growth channels', '# cells at switch', '# estimated lags', '# arrested cells at switch'),
+                 caption='List of experiments on growth-coupled sensitivity during transient growth arrest (Fig. 2D) with summary statistics.') %>%
      # kableExtra::kable_styling(full_width=TRUE) %>%
      kableExtra::kable_styling(latex_options = c("striped", "scale_down")) %>%
      kableExtra::column_spec(3:6, width = "3.5em") %>%
@@ -15,12 +15,12 @@ mytables[['lacl_list']] %>%
      kableExtra::row_spec(which(.df$date %in% discarded_dates), italic=T, color="gray") %>%
      identity()
   ) %>%
-  str_replace(fixed("{tab:}"), "{tab:lactulose-list}") %>%
+  # str_replace(fixed("{tab:}"), "{tab:lactulose-list}") %>%
 #   str_replace(fixed("\\resizebox{\\linewidth}{!}"), "\\resizebox*{!}{0.9\\textheight}") %>% 
   write(here('plots', 'SI_figs', 'lacl-list.tex'))
 
 
-(myplots[['TMG_induction_gly04']] <- (function() {
+(myplots[['TMG_induction_gly04_hill']] <- (function() {
   load('data/20180703_ASC662_M9gly04pc_TMG.RData')
   mydata %>% 
     ungroup() %>% 
@@ -31,11 +31,24 @@ mytables[['lacl_list']] %>%
     stat_function(fun=hill_fn, args=as.list(summary(myfit_all)$coefficients[,1]), col="red", 
                   geom="point", n=1, xlim=log2(c(20, 20)), size=3) +
     scale_x_continuous(trans='log2', limits=c(5, 200), breaks=c(6, 12, 25, 50, 100, 200)) +
-    scale_y_continuous(trans='log2', breaks=c(16, 128, 1024)) +
+    scale_y_log10() +
     labs(x="TMG concentration (µM)", y="[LacZ-GFP] per cell (AU)    ") +
     NULL
   })())
-  # save_plot(here("plots", "SI_figs", "induction-tmg-gly.pdf"), .,
+
+(myplots[['TMG_induction_gly04']] <- (function() {
+  load('data/20180703_ASC662_M9gly04pc_TMG.RData')
+  mydata %>% ungroup() %>% 
+    filter(Ch==2) %>% 
+    ggplot(aes(tmg, gfp)) +
+    geom_vline(xintercept = 20, lty="dashed", col=qual_cols[2], size=0.8) + 
+    geom_point(alpha=.2, stroke=0, position=position_jitter(width=.1)) +
+    scale_x_continuous(trans='log2', limits=c(5, 80), breaks=c(6, 12, 25, 50)) +
+    scale_y_log10() +
+    labs(x="TMG concentration (µM)", y="[LacZ-GFP] per cell (AU)    ") +
+    NULL
+})())
+# save_plot(here("plots", "SI_figs", "induction-tmg-gly.pdf"), .,
   #           base_height=NULL, base_width=4.75 * 14/7, # 2 cols
   #           base_aspect_ratio = 2)
 
@@ -52,7 +65,7 @@ plot_grid(
   ),
   myplots[['TMG_switch_gr_hist']] +
     theme_cowplot_legend_inset(),
-  ncol=1, labels=c("", "B"), rel_heights=c(1, 1.2)
+  ncol=1, labels=c("", "C"), rel_heights=c(1, 1.2)
 ) %>% 
   save_plot(here("plots", "SI_figs", "transient-arrest-tmg.pdf"), .,
             base_height=NULL, base_width=4.75 * 14/7, # 2 cols
@@ -245,11 +258,11 @@ plot_grid(
     labs(y='max [LacZ] (MU)      ') +
     NULL,
   myplots[['lac_model_crp_phdiag']],
-  NULL,
+  # NULL,
   nrow=1, labels="AUTO") %>% 
   save_plot(here("plots", "SI_figs", "native-lac-model.pdf"), .,
             base_height=NULL, base_width=4.75 * 14/7, # 2 cols
-            base_aspect_ratio = 2.9)
+            base_aspect_ratio = 2.7)
   
 
 
@@ -257,21 +270,22 @@ plot_grid(
 # SUGAR MIXTURES ####
 
 mytables[['sugarmix_list']] %>%
-  mutate(treatment=fct_recode(treatment, 'glucose only'='none', 'with lactose 200mg/L'='lac002', 'with IPTG 200µM'='iptg')) %>% 
+  mutate(treatment=fct_recode(treatment, 'glucose only'='none', 'with lactose 0.58 mM'='lac002', 'with IPTG 200µM'='iptg')) %>% 
   mutate_if(is.numeric, list(as.character)) %>% # protect existing rounding of floats
   knitr::kable("latex", booktabs=TRUE, #longtable = TRUE,
-               col.names=c('treatment', '[glucose] (mg/L)', 'date', '# analysed cells', 'prop. induced', 
+               label="sugarmix-list", 
+               col.names=c('treatment', '[glucose] (µM)', 'date', '# analysed cells', 'prop. induced', 
                            '# growth channels', '# frames'),
-               caption='List of experiments on the concentration-dependent sugar preference (Fig. 3) with summary statistics. Experiments that have been discarded from further analysis are greyed out.') %>%
+               caption='List of experiments on the concentration-dependent sugar preference (Fig. 3B-C) with summary statistics. Experiments that have been discarded from further analysis are greyed out.') %>%
   # kableExtra::kable_styling(full_width=TRUE) %>%
   kableExtra::kable_styling(latex_options = c("striped", "scale_down")) %>%
   # kableExtra::column_spec(3:6, width = "3.5em") %>%
   # kableExtra::column_spec(7:8, width = "5em") %>%
   kableExtra::row_spec(
-    which(mytables[['sugarmix_list']]$date==20210122 & mytables[['sugarmix_list']]$glu==2.9
-          | mytables[['sugarmix_list']]$date %in% c(20210122, 20210305) & mytables[['sugarmix_list']]$glu==5.8
+    which(mytables[['sugarmix_list']]$date==20210122 & mytables[['sugarmix_list']]$glu==16
+          | mytables[['sugarmix_list']]$date %in% c(20210122, 20210305) & mytables[['sugarmix_list']]$glu==32
     ), italic=T, color="gray") %>%
-  str_replace(fixed("{tab:}"), "{tab:sugarmix-list}") %>%
+  # str_replace(fixed("{tab:}"), "{tab:sugarmix-list}") %>%
   write(here('plots', 'SI_figs', 'sugarmix-list.tex'))
 
 
@@ -280,9 +294,9 @@ plot_grid(
     myplots[['sugarmix_m9zero']] +
       labs(title="no C source") ,
     myplots[['sugarmix_indn_thr']] +
-      labs(col="[glucose]\n(mg/L)") +
+      labs(col="[glucose]\n(µM)") +
       theme_cowplot_legend_inset() +
-      labs(title="with lactose 200 mg/L") ,
+      labs(title="with lactose 0.58 mM") ,
   nrow=1, rel_widths = c(1, 1.2), labels=c("A", "C")),
   myplots[['sugarmix_gr_pos']] +
     # guides(col=guide_colorbar()) +
@@ -292,6 +306,15 @@ plot_grid(
   save_plot(here("plots", "SI_figs", "sugarmix-controls.pdf"), .,
             base_height=NULL, base_width=4.75 * 14/7, # 1 col
             base_aspect_ratio = 1)
+
+plot_grid(
+  myplots[['sugarmix_monod']] +
+    scale_x_continuous(breaks=seq(0, 2000, by=500)),
+  myplots[['sugarmix_monod_inv']],
+  nrow=1, rel_widths = c(1, 1), labels="AUTO") %>% 
+  save_plot(here("plots", "SI_figs", "sugarmix-monod.pdf"), .,
+            base_height=NULL, base_width=4.75 * 14/7, # 1 col
+            base_aspect_ratio = 2.5)
 
 (myplots[['sugarmix_gr_distr']] +
     theme_cowplot_legend_inset() +

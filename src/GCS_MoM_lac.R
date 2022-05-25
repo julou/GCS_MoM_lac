@@ -1,7 +1,4 @@
 # SET ENVIRONMENT
-# install.packages(c('remotes', 'here', 'tidyverse', 'RcppArmadillo', 'svglite'))
-# remotes::install_github(c('julou/ggCustomTJ', 'hadley/multidplyr'))
-# remotes::install_github('vanNimwegenLab/vngMoM', auth_token='xxx')
 suppressPackageStartupMessages({
   library(here)
   library(tidyverse)
@@ -58,7 +55,7 @@ myconditions <- list(
   list(condition='switch_lactulose_TMG20_stdIllum', duration=c(480, 720), dt=360, 
        medium=c('glycerol', 'lactulose+TMG'),
        paths=c(#"./data_thomas/20180704/20180704_glyc_lactulose_TMG20uM_curated/", # with dt=180 slow growth and limited induction
-         "data_thomas/20180709/20180709_glyc_lactuloseTMG20uM_curated/", "./data_thomas/20180711/20180711_glyc_lactuloseTMG20uM_curated/")),
+         "./data_thomas/20180709/20180709_glyc_lactuloseTMG20uM_curated/", "./data_thomas/20180711/20180711_glyc_lactuloseTMG20uM_curated/")),
   list(condition='switch_lactulose_stdIllum', duration=c(480, 720), dt=360, 
        medium=c('glycerol', 'lactulose'),
        paths=c("./data_thomas/20180710/20180710_glyc_lactulose_curated/")),
@@ -265,6 +262,7 @@ myplots <- list()
 mytables <- list()
 
 library(svglite)
+# library(ggtext)
 knitr::opts_chunk$set(
   echo=FALSE, message=FALSE, warning=FALSE,
   dev="svglite"

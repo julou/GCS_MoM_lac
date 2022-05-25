@@ -670,7 +670,7 @@ myrates_lactulose %>%
 
 
 ```{r results=FALSE}
-(myplots[['lacl_boxpl_subset']] <- function(.var, ..., .simplify_time_labels=FALSE) {
+(myplots[['lacl_boxpl_subset']] <- function(.var, ..., .facet_dir="h", .simplify_time_labels=FALSE) {
   .varc <- deparse(substitute(.var))
   .pl <- myrates_lactulose %>% ungroup() %>% 
     filter(str_detect(condition, 'TMG') | str_detect(condition, 'lactulose'), 
@@ -697,7 +697,6 @@ myrates_lactulose %>%
     group_by(condition, time_bin) %>% 
     mutate(prop=n/sum(n)) %>% 
     ggplot(aes(time_bin)) +
-    facet_grid(.~condition) +
     # facet_grid(fct_relevel(variable, "gr")~condition, scales = "free_y", switch="y") +
     geom_hline(yintercept=0, col="gray80") +
     geom_hline(yintercept=switch(.varc, igr = 0.1, gfp_c = 250 ), lty="dashed", size=.25, col="gray20") +
@@ -706,8 +705,11 @@ myrates_lactulose %>%
                  stat = "identity", position = position_dodge2(preserve = "single") ) +
     labs(x="time relative to switch (h)", y=substitute(.var)) +
     NULL
+  if (.facet_dir == "h") .pl <- .pl + facet_grid(.~condition) 
+  if (.facet_dir == "v") .pl <- .pl + facet_grid(condition~.) 
+  
   if (.simplify_time_labels) .pl + 
-        scale_x_discrete(labels=function(.l) str_match(.l, "[\\[\\(](-?\\d+),\\d+\\]")[,2] )
+    scale_x_discrete(labels=function(.l) str_match(.l, "[\\[\\(](-?\\d+),\\d+\\]")[,2] )
   else .pl
 })(gfp_c,
    condition %in% c("switch_lactulose_TMG20", "switch_glycerol_TMG20"),
@@ -735,7 +737,9 @@ myrates_lactulose %>% ungroup() %>%
          time_bin %in% c("[-1,0]", "(0,1]", "(7,8]")) %>% 
   group_by(condition, time_bin, date, pos, gl, id) %>%
   summarise(n_p=n()) %>% 
-  group_by(condition, time_bin, date) %>% 
+  # filter(n_p > 3) %>% 
+  # group_by(condition, time_bin, date) %>% 
+  group_by(condition, time_bin) %>% 
   summarise(n=n())
 
 ```

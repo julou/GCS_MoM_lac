@@ -89,7 +89,6 @@ output:
     parse_sugarmix_conds(condition) %>% 
     select(-condition) %>%
     arrange(treatment, glu) %>% relocate(treatment) %>% 
-    mutate(glu=signif(glu * 200/1110, 2)) %>% 
     #add M9 zero control
     bind_rows(
        myframes %>% 

@@ -20,7 +20,7 @@ parse_sugarmix_conds <- function(data, colname) {
       treatment = ifelse(str_detect({{colname}}, '^glu\\d+'), 'none', treatment),
       treatment = ifelse(str_detect({{colname}}, 'lac002'), 'lac002', treatment),
       treatment = ifelse(str_detect({{colname}}, 'IPTG'), 'iptg', treatment),
-      treatment = fct_relevel(treatment, 'none', 'lac002', 'iptg'),
+      treatment = fct_relevel(factor(treatment), 'none', 'lac002', 'iptg'),
     ) %>% 
     group_by(!!!.groups)
 }
@@ -208,12 +208,12 @@ Note that while it could look appealing to stratify by the expression state of t
   # no need to fill up gfp_nb NAs
   filter(time_sec > 4 * 3600) %>% 
   # group_by(date, glu) %>% summarise(n=n(), nn=sum(!is.na(gfp_nb)))
-  ggplot(aes(gfp_nb, col=glu*.18, group=interaction(date, glu))) +
+  ggplot(aes(gfp_nb, col=glu, group=interaction(date, glu))) +
   stat_ecdf() +
   coord_cartesian(xlim=c(NA, 6000)) +
   geom_vline(xintercept = 250, lty='dotted') +
   scale_color_viridis_c(trans='log2') +
-  labs(x='total LacZ-GFP per cell', y="cumul. proba.", col="[glucose] (mg/L)") +
+  labs(x='total LacZ-GFP per cell', y="cumul. proba.", col="[glucose] (µM)") +
   NULL)
 
 myframes %>% 
@@ -448,11 +448,10 @@ Let's check growth rate distributions as a function of glucose concentration for
    group_by(date, condition) %>% 
    mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
    parse_sugarmix_conds(condition) %>% 
-   mutate(glu=glu * 200/1110) %>% 
    ggplot(aes(grate/log(2)*3600, col=factor(round(induced)))) +
    facet_grid(glu~treatment, labeller=labeller(
-     treatment=as_labeller(function(.l) c('none'='glucose only', 'lac002'='+ lactose 200mg/mL', 'iptg'='+ IPTG 200µM')[.l] ),
-     glu=as_labeller(function(.l) paste(signif(as.numeric(.l), 2), 'mg/L') )
+     treatment=as_labeller(function(.l) c('none'='glucose only', 'lac002'='+ lactose 0.58 mM', 'iptg'='+ IPTG 200µM')[.l] ),
+     glu=as_labeller(function(.l) paste(.l, 'µM') )
    ) ) +
    geom_freqpoly(aes(y=after_stat(density), size=prop, group=interaction(date, condition, prop)), binwidth=.1) +
    scale_y_continuous(breaks = scales::breaks_extended(n=3)) +
@@ -476,15 +475,14 @@ For glucose only, let's verify that the growth rate does not depend on the posit
    ungroup() %>% 
    parse_sugarmix_conds(condition) %>% 
    filter(treatment %in% c('none')) %>% 
-   mutate(date=paste('day', as.numeric(factor(date))),
-          glu=glu * 200/1110) %>% 
+   mutate(date=paste('day', as.numeric(factor(date))) ) %>% 
    group_by(date, condition) %>% 
    mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
    mutate(b_rank=map_dbl(data, ~mean(.$b_rank)) ) %>% 
    filter(b_rank < 7) %>% 
    ggplot(aes(grate/log(2)*3600, col=b_rank)) +
    facet_wrap(~glu+date, nrow=3,
-              labeller=labeller(glu=function(.l) paste(signif(as.numeric(.l), 2), "mg/L") ) 
+              labeller=labeller(glu=function(.l) paste(.l, "µM") ) 
               # labeller=labeller(glu=function(.l) sprintf('%.2g', as.numeric(.l)) ) 
               ) +
    stat_ecdf(aes(group=interaction(date, condition, b_rank))) +
@@ -749,7 +747,7 @@ myindct %>%
 # 1%  ~ 10 g/L
 # 1µM ~ 1.8e-4 g/L ~ 0.18 mg/L
 (myplots[['sugarmix_induction']] <- function(.xbreaks=2^c(0, 4, 8)) {
-  .xmin <- min(1*.18, .xbreaks/1.35)
+  .xmin <- min(1, .xbreaks/1.35)
   .gr_pl <-
     myrates_mix %>% 
     group_by(date, condition) %>% 
@@ -764,7 +762,7 @@ myindct %>%
     mutate(prop=n/sum(n)) %>% 
     parse_sugarmix_conds(condition) %>% 
     filter(treatment != "iptg") %>%
-    ggplot(aes(glu*.18, gr_mean)) +
+    ggplot(aes(glu, gr_mean)) +
     # geom_rect(aes(xmin=0, xmax=Inf, ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, col=NULL), 
     #           fill="gray92", show.legend=FALSE,
     #           data=~filter(., treatment=='lac002', glu==0, induced==1) ) +
@@ -786,7 +784,7 @@ myindct %>%
     coord_cartesian(xlim=c(1.35*.xmin, NA), ylim=c(NA, 1.4)) +
     scale_x_continuous(trans='log2', breaks=2^c(0, 4, 8)) +
     scale_y_continuous(breaks=c(0, 0.5, 1)) +
-    labs(x='[glucose] (mg/L)', y='growth rate (dbl/h)') +
+    labs(x='[glucose] (µM)', y='growth rate (dbl/h)') +
     scale_colour_manual(name='', 
       limits = c('none.0', 'lac002.0', 'lac002.1', 'lac'), # set colours order
       values=c('none.0' = colorspace::desaturate( colorspace::lighten(qual_cols[1], .5), .2), 
@@ -795,9 +793,9 @@ myindct %>%
                'lac002.1' = qual_cols[2],
                'lac' = colorspace::desaturate( colorspace::lighten(qual_cols[2], .5), .2) ),
       labels=c('none.0'='glucose only', 
-               'lac002.0'='glucose + lactose 200 mg/L (uninduced)', 
-               'lac002.1'='glucose + lactose 200 mg/L (induced)',
-               'lac'='lactose 200 mg/L only') 
+               'lac002.0'='glucose + lactose 0.58 mM (uninduced)', 
+               'lac002.1'='glucose + lactose 0.58 mM (induced)',
+               'lac'='lactose 0.58 mM only') 
       ) +
     # theme_cowplot() +
     theme(legend.position = "bottom", legend.direction = "vertical", 
@@ -808,10 +806,10 @@ myindct %>%
     myindct %>% 
     ggplot( ) +
     geom_hline(yintercept = c(0, 1), lty='dotted', col='gray40') +
-    geom_line(aes(glu*.18, prop),
+    geom_line(aes(glu, prop),
               data = ~select(., prediction) %>% unnest(prediction)) +
     # must filter glu>0 with position=dodge (already done in data_fit)
-    geom_pointrange(aes(glu*.18, prop, ymin=prop-se, ymax=prop+se, group=date),
+    geom_pointrange(aes(glu, prop, ymin=prop-se, ymax=prop+se, group=date),
                     position=position_dodge(width=.3), 
                     data = ~select(., data_fit) %>% unnest(data_fit) ) +
     geom_pointrange(aes(x=.xmin, prop, ymin=prop-se, ymax=prop+se),
@@ -824,7 +822,7 @@ myindct %>%
   
   plot_grid(
     .prop_pl +
-      coord_cartesian(xlim=c(1.35*.xmin, 1.5e3*.18)) +
+      coord_cartesian(xlim=c(1.35*.xmin, 1.5e3)) +
       scale_x_continuous(trans="log2", breaks=.xbreaks) +
       scale_y_continuous(breaks=c(0, 1)) +
       labs(y="prop.\ninduced") +
@@ -833,7 +831,7 @@ myindct %>%
       # theme(...) +
       NULL, 
     .gr_pl +
-      coord_cartesian(xlim=c(1.35*.xmin, 1.5e3*.18), ylim=c(NA, 1.25)) +
+      coord_cartesian(xlim=c(1.35*.xmin, 1.5e3), ylim=c(NA, 1.25)) +
       scale_x_continuous(trans="log2", breaks=.xbreaks) +
       # theme_cowplot_legend_inset() +
       theme(legend.box.spacing = unit(-12, "pt")) +
@@ -896,66 +894,83 @@ myrates_mix %>%
 
 ```
 
-```{r glucose monod curve, eval=FALSE}
-myrates_mix %>% 
-  group_by(date, condition) %>% 
-  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
-  group_by(date, condition, induced) %>% 
-  summarise(
-    gr_mean=mean(grate/log(2)*3600),
-    gr_sd  =sd(grate/log(2)*3600),
-    n=n(),
-  ) %>% 
-  group_by(date, condition) %>% 
-  mutate(prop=n/sum(n)) %>% 
-  parse_sugarmix_conds(condition) %>% 
-  filter(glu<2000) %>%
-  # filter(., treatment=='lac002', glu==0, induced==1)
-  ggplot(aes(glu, gr_mean)) +
-  # geom_rect(aes(xmin=-Inf, xmax=Inf, ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, group=date), fill="grey10", alpha=.2,
-  #           data=~filter(., treatment=='lac002', glu==0, induced==1)) +
-  # geom_hline(aes(yintercept=gr_mean, group=date), lty="dashed",
-  #            data=~filter(., treatment=='lac002', glu==0, induced==1)) +
-  geom_pointrange(aes(ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, size=prop),
-                  position=position_dodge2(width=.4), 
-                  data=~filter(., treatment=='none')) +
-  coord_cartesian(ylim=c(NA, 1.4)) +
-  scale_size_continuous(range=c(0.05, .5), guide='none') +
-  # scale_x_continuous(trans='log2') +
-  labs(x="[glucose] (µM)", y="growth rate (dbl/h)") +
-  theme_cowplot() +
-  NULL
+```{r glucose monod curve}
+(myplots[['sugarmix_monod']] <- 
+   myrates_mix %>% 
+   group_by(date, condition) %>% 
+   filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+   group_by(date, condition, induced) %>% 
+   summarise(
+     gr_mean=mean(grate/log(2)*3600),
+     gr_sd  =sd(grate/log(2)*3600),
+     n=n(),
+   ) %>% 
+   parse_sugarmix_conds(condition) %>% 
+   filter(treatment=='none', induced==0) %>% 
+   filter(glu<2000) %>% 
+   (function(.df) {
+     # browser()
+     # .mod <- lm(gr_inv~glu_inv, weights=1/.df$gr_sd^2, data=mutate(.df, gr_inv=1/gr_mean, glu_inv=1/glu))
+     # .gr_max <- 1/coef(.mod)[1]
+     # .glu_half <- coef(.mod)[2]*.gr_max
+     
+     .monod <- function(.glu, .gr_max, .glu_half) .gr_max * .glu / (.glu + .glu_half)
+     .mod <- nls(gr_mean~.monod(glu, gr_max, glu_half), data=.df, start=list(gr_max=1, glu_half=5))
+     .gr_max <- coef(.mod)[1]
+     .glu_half <- coef(.mod)[2]
+     print(summary(.mod))
+
+     ggplot(.df, aes(glu, gr_mean)) +
+       # geom_rect(aes(xmin=-Inf, xmax=Inf, ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd, group=date), fill="grey10", alpha=.2,
+       #           data=~filter(., treatment=='lac002', glu==0, induced==1)) +
+       # geom_hline(aes(yintercept=gr_mean, group=date), lty="dashed",
+       #            data=~filter(., treatment=='lac002', glu==0, induced==1)) +
+       geom_vline(xintercept=0, lty="dotted") +
+       stat_function(fun = function(.glu) .gr_max * .glu / (.glu + .glu_half), col='gray') +
+       geom_pointrange(aes(ymin=gr_mean-gr_sd, ymax=gr_mean+gr_sd),
+                       # position=position_dodge2(width=.4), 
+       ) +
+       coord_cartesian(ylim=c(NA, 1.4)) +
+       scale_size_continuous(range=c(0.05, .5), guide='none') +
+       # scale_x_continuous(trans='log2') +
+       labs(x="[glucose] (µM)", y="growth rate (dbl/h)") +
+       theme_cowplot() +
+       NULL
+   }))
   
 # plotting 1/gr vs 1/glu
-myrates_mix %>%
-  group_by(date, condition) %>%
-  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
-  group_by(date, condition, induced) %>%
-  summarise(
-    gr_mean=mean(grate/log(2)*3600),
-    gr_sd  =sd(grate/log(2)*3600),
-    gr_re=gr_sd/sqrt(n()) / gr_mean,
-    dt_mean=mean(log(2)/grate/3600),
-    dt_sd  =sd(log(2)/grate/3600),
-    ymin=1/pmax(0, gr_mean+gr_sd), ymax=1/pmax(0, gr_mean-gr_sd),
-    n=n(),
-  ) %>%
-  parse_sugarmix_conds(condition) %>%
-  filter(treatment=='none') %>% 
-  # filter(glu<1000) %>%
-  ggplot(aes(1/glu/.18, 1/gr_mean)) +
-  stat_smooth(method='lm', se=FALSE, col="gray40", fullrange=TRUE) +
-  # geom_point() +
-  geom_hline(yintercept=0, lty="dotted") +
-  geom_pointrange(aes(ymin=1/pmax(0, gr_mean+gr_sd), ymax=1/pmax(0, gr_mean-gr_sd)),
-                  data=~filter(., 1/glu < 0.1)) +
-  geom_pointrange(aes(ymin=1/pmax(0, gr_mean+gr_sd), ymax=1/pmax(0, gr_mean-gr_sd)),
-                  data=~filter(., 1/glu > 0.1), position=position_jitter(width=.01, seed=53425)) +
-  expand_limits(x=0, y=0) +
-  coord_cartesian(ylim=c(0, NA)) +
-  labs(x = "1 / [glucose] (L/mg)", y = "1 / growth rate (h)") +
-  theme_cowplot() +
-  NULL
+(myplots[['sugarmix_monod_inv']] <- 
+    myrates_mix %>%
+    group_by(date, condition) %>%
+    filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+    group_by(date, condition, induced) %>%
+    summarise(
+      gr_mean=mean(grate/log(2)*3600),
+      gr_sd  =sd(grate/log(2)*3600),
+      gr_re=gr_sd/sqrt(n()) / gr_mean,
+      dt_mean=mean(log(2)/grate/3600),
+      dt_sd  =sd(log(2)/grate/3600),
+      ymin=1/pmax(0, gr_mean+gr_sd), ymax=1/pmax(0, gr_mean-gr_sd),
+      n=n(),
+    ) %>%
+    parse_sugarmix_conds(condition) %>%
+    filter(treatment=='none', induced==0) %>% 
+    # filter(glu<1000) %>%
+    # transmute(glu=glu, glu2=1/glu, glu3=1/glu/.18) %>% arrange(glu)
+    ggplot(aes(1/glu, 1/gr_mean)) +
+    stat_smooth(method='lm', se=FALSE, col="gray", fullrange=TRUE) +
+    # geom_point() +
+    geom_vline(xintercept=0, lty="dotted") +
+    geom_pointrange(aes(ymin=1/pmax(0, gr_mean+gr_sd), ymax=1/pmax(0, gr_mean-gr_sd)),
+                    data=~filter(., 1/glu < 0.1)) +
+    geom_pointrange(aes(ymin=1/pmax(0, gr_mean+gr_sd), ymax=1/pmax(0, gr_mean-gr_sd)),
+                    data=~filter(., 1/glu > 0.1), position=position_dodge2(width=1.5e-2, preserve="single")) +
+    expand_limits(x=0, y=0) +
+    coord_cartesian(ylim=c(0, 7)) +
+    scale_size_continuous(range=c(0.05, .5), guide='none') +
+    labs(x = "1 / [glucose] (µM⁻¹)", y = "1 / growth rate (h)") +
+    theme_cowplot() +
+    NULL)
 
 ```
 
@@ -1076,11 +1091,12 @@ myrates_mix %>% ungroup() %>%
               gfp2_m=exp(mean(log(gfp_tot), na.rm=T)),
               gfp2_min=exp(mean(log(gfp_tot), na.rm=T) - sd(log(gfp_tot), na.rm=T)),
               gfp2_max=exp(mean(log(gfp_tot), na.rm=T) + sd(log(gfp_tot), na.rm=T)),
+              n=n()
               ) %>%  
     # lm(gfp_m~grate2, data=.)
     ungroup() %>% 
-    mutate(glu=factor(signif(glu*200/1110, 2)),
-           glu=factor(glu, labels=paste(levels(glu), 'mg/L')) ) %>% 
+    mutate(glu=factor(glu),
+           glu=factor(glu, labels=paste(levels(glu), 'µM')) ) %>% 
     ggplot(aes(grate2_m, gfp2_m, col=glu)) +
     stat_smooth(method="lm", fullrange=TRUE, se=FALSE, col="black") +
     geom_errorbarh(aes(xmin=grate2_m-grate2_sd, xmax=grate2_m+grate2_sd), height=0, show.legend=F) + 

@@ -28,13 +28,12 @@ myfigs <- list()
     mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
     unnest(data) %>% 
     extract(path, c('curve'), ".*/lac_phasediagram_cons_(.+)\\.txt") %>% 
-    (function(.df)
-      ggplot(.df) +
-       geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
-                    data=bind_rows(.df, 
-                                   tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
-                                   tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')),
-                                   ))) +
+    ggplot() +
+    geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
+                 data=~bind_rows(., 
+                                 tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')),
+                                 tibble(X1=-Inf, X2=Inf, curve=c('lower', 'upper')),
+                 )) +
     geom_line(aes(exp(X1), exp(X2), col=curve)) +
     geom_vline(xintercept = log(2)/0.5, lty='dashed') +
     geom_vline(xintercept = log(2)/0.5*10, lty='dashed', col='grey60') +
@@ -57,10 +56,9 @@ myfigs <- list()
     mutate(data=map(path, ~read_delim(., delim='\t', col_names = FALSE))) %>% 
     unnest(data) %>% 
     extract(path, c('curve'), ".*/lac_phasediagram_w_crp_(.+)\\.txt") %>% 
-    (function(.df)
-      ggplot(.df) +
-       geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
-                    data=bind_rows(.df, tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper'))))) +
+    ggplot() +
+    geom_polygon(aes(exp(X1), exp(X2), fill=curve), 
+                 data=~bind_rows(., tibble(X1=Inf, X2=Inf, curve=c('lower', 'upper')))) +
     geom_line(aes(exp(X1), exp(X2), col=curve)) +
     geom_vline(xintercept = log(2)/0.5, lty='dashed') +
     geom_vline(xintercept = log(2)/0.5*10, lty='dashed', col='grey60') +
@@ -357,24 +355,20 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_mode
   # RIGHT COL
   plot_grid(
     myplots_miller[['GCS_sugars_indct_subset']] +
-      # theme(legend.position = c(1, 0), legend.justification = c(1, 0)) +
-      theme_cowplot_legend_inset() +
-      theme(legend.position = 'bottom', legend.box.spacing=unit(-1, "line"),
-            legend.box.margin=margin(l=-48), # shift the whole legend horizontally
-            # legend.margin=margin(t=-20),
-      ) +
-      guides(col=guide_legend(title="", direction = "vertical", ncol=2, )) +
       # coord_cartesian(xlim=c(.2, NA), ylim=c(.5, 1000)) +
+      theme(legend.position = 'none') +
       labs(title=" ", y=expression('p'['lac']*' activity (MU/h)    ')) +
       NULL,
-    myplots_miller[['GCS_sugars']](media %in% c('M9+0.2ara+CA', 'M9+0.2ara', 'M9+0.2gly', 'M9+0.2man', 'M9+0.2pyr')) + 
-      # scale_color_sugars(guide=guide_legend(reverse=TRUE)) +
-      theme(legend.position = 'none') +
-      # theme(legend.position = 'right') +
-      # theme_cowplot_legend_inset() +
+    myplots_miller[['GCS_sugars']]() + 
+      guides(col=guide_legend(title=NULL, direction = "vertical", ncol=2, )) +
+      theme_cowplot_legend_inset() +
+      theme(legend.position = 'top', #legend.box.spacing=unit(-1, "line"),
+            legend.box.margin=margin(t=-8, l=-48), # shift the whole legend horizontally
+            # legend.margin=margin(t=-20),
+      ) +
       labs(y='critical [TMG] (µM)  ') +
       NULL,
-    ncol=1, rel_heights = c(1.3, 1), labels = c("E", "F"), align="v", axis="l"
+    ncol=1, rel_heights = c(1, 1.45), labels = c("E", "F"), align="v", axis="l"
   ),
   
   nrow = 1, rel_widths = c(.85, 1, 1)
@@ -506,7 +500,7 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[[2]],
       NULL,
     ncol=1, rel_heights = c(1, 1), labels = c("A", "B")),
   
-  myplots[['sugarmix_induction']](.xbreaks = 2 * 10^(-1:2)),
+  myplots[['sugarmix_induction']](.xbreaks = 2 * 10^(0:4)),
   
   plot_grid(
     myplots_miller[['GCS_cm_maxindct']](strain=='MG1655') +
