@@ -1031,6 +1031,7 @@ myrates_mix %>% ungroup() %>%
   labs(x="growth rate (dbl/h)", y="[LacZ-GFP] (unbleached)", col="[glu] (µM)") +
   theme(legend.position=c(.95, .95), legend.justification=c(1, 1)) +
   NULL
+
 ```
 
 
@@ -1039,7 +1040,7 @@ Hence $c = c_u (1+\beta/\lambda)$.
 Note that we recover the so-called C-line of Hwa, *et al.*
 
 ```{r}
-# gfp_c vs grate (bleaching corrected)
+# gfp_c vs grate (bleaching corrected per cell)
 myrates_mix %>% ungroup() %>% 
   mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
          gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
@@ -1053,60 +1054,151 @@ myrates_mix %>% ungroup() %>%
   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
   filter(induced==1) %>% 
   filter(n()>10) %>% 
+  filter(grate2 > .01) %>% 
   parse_sugarmix_conds(condition) %>% 
   filter(treatment=="iptg") %>% 
   # lm(gfp_m~grate2, data=.)
   ggplot(aes(grate2, gfp_tot, col=factor(glu))) +
   geom_point(alpha=.5, stroke=0, size=1) +
-  # stat_smooth(method="lm", fullrange=TRUE, aes(col="all")) +
+  # stat_smooth(method="lm", aes(col=factor(glu), group=interaction(date, glu))) +
   stat_smooth(method="lm", fullrange=TRUE, col="black", #aes(col="mean"),
              data=~group_by(., date, glu) %>% 
-               summarise(grate2=mean(grate2), gfp_tot=exp(mean(log(gfp_tot), na.rm=T)) ) ) +
+               summarise(grate2=mean(grate2), gfp_tot=mean(gfp_tot, na.rm=T)) ) +
   geom_point(stroke=2, size=4,
              data=~group_by(., date, glu) %>% 
-               summarise(grate2=mean(grate2), gfp_tot=exp(mean(log(gfp_tot), na.rm=T)) ) ) +
+               summarise(grate2=mean(grate2), gfp_tot=mean(gfp_tot, na.rm=T)) ) +
   coord_cartesian(ylim=c(0, 1.3e4)) +
-  labs(x="growth rate (dbl/h)", y="[LacZ-GFP]", col="[glu] (µM)") +
+  labs(title="bleaching corrected per cell", 
+       x="growth rate (dbl/h)", y="[LacZ-GFP]", col="[glu] (µM)") +
   theme(legend.position=c(.95, .95), legend.justification=c(1, 1)) +
   NULL
 
+# gfp_c vs grate (bleaching corrected per experiment)
+myrates_mix %>% ungroup() %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment=="iptg") %>% 
+  mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
+         gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
+         time_birth=map_dbl(data, ~min(.$time_sec)),
+         grate2=grate/log(2)*3600,
+  ) %>% 
+  group_by(date, condition) %>% 
+  filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  # filter(grate2 > .01) %>% 
+  mutate(grate_mean = mean(grate),
+         gfp_b = 5.3e-5/5, # Kaiser2018 reports 5.3e-5 / sec for 5x stronger illumination
+         gfp_tot = gfp_m * (1 + gfp_b/grate_mean),
+) %>% 
+  mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+  filter(induced==1) %>% 
+  filter(n()>10) %>% 
+  # lm(gfp_m~grate2, data=.)
+  ggplot(aes(grate2, gfp_tot, col=factor(glu))) +
+  geom_point(alpha=.5, stroke=0, size=1) +
+  # stat_smooth(method="lm", aes(col=factor(glu), group=interaction(date, glu))) +
+  stat_smooth(method="lm", fullrange=TRUE, col="black", #aes(col="mean"),
+             data=~group_by(., date, glu) %>% 
+               summarise(grate2=mean(grate2), gfp_tot=mean(gfp_tot, na.rm=T)) ) +
+  geom_point(stroke=2, size=4,
+             data=~group_by(., date, glu) %>% 
+               summarise(grate2=mean(grate2), gfp_tot=mean(gfp_tot, na.rm=T)) ) +
+  coord_cartesian(ylim=c(0, 1.3e4)) +
+  labs(title="bleaching corrected per experiment",
+       x="growth rate (dbl/h)", y="[LacZ-GFP]", col="[glu] (µM)") +
+  theme(legend.position=c(.95, .95), legend.justification=c(1, 1)) +
+  NULL
+
+```
+
+In order to plot this in concentration units, one measures width at the different glucose concentrations.
+
+```{r}
+ fs::dir_ls(here("data", "sugarMix-cellWidth"), recurse=TRUE, glob = "*.txt") %>% 
+   tibble(path=.) %>% 
+   extract("path", c("glu", "date"), "glu(\\d+)uM/(20\\d{6})", remove = FALSE) %>% 
+   mutate(
+     glu=as.numeric(glu), 
+     data=map(path, ~readr::read_delim(., delim="\t", col_types=cols_only( MinFeret=col_number() )) )
+   ) %>%
+   unnest(data) %>% 
+   identity() %>% 
+   ggplot(aes(glu, MinFeret)) +
+   geom_jitter(aes(col=date), width=.25) +
+   # geom_jitter(width=.2, col="gray50") +
+   geom_boxplot(aes(group=glu), fill="transparent", outlier.shape = NA) +
+   scale_x_continuous(trans="log2", breaks=2^c(1, 3, 5, 7)) +
+   labs(x="[glucose] (µM)", y="cell width (µm)") +
+   expand_limits(y=0) +
+   NULL
+             
+```
+
+
+
+```{r}
+rod_volume <- function(.l, .w) pi * ( (.w/2)^2 * (.l - .w) + 4/3 * (.w/2)^3 )
+
 (myplots[['sugarmix_crp']] <- 
     myrates_mix %>% ungroup() %>% 
-    mutate(gfp_m  = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
-           gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
+    parse_sugarmix_conds(condition) %>% 
+    filter(treatment=="iptg") %>% 
+   # append average width per condition
+   left_join(
+     fs::dir_ls(here("data", "sugarMix-cellWidth"), recurse=TRUE, glob = "*.txt") %>% 
+       tibble(path=.) %>% 
+       extract("path", c("glu", "date"), "glu(\\d+)uM/(20\\d{6})", remove = FALSE) %>% 
+       mutate(
+         glu=as.numeric(glu), 
+         data=map(path, ~readr::read_delim(., delim="\t", col_types=cols_only( MinFeret=col_number() )) )
+       ) %>%
+       unnest(data) %>% 
+       group_by(glu) %>% 
+       summarise(width_um = median(MinFeret))
+   ) %>% 
+   mutate(gfp_m  = map2_dbl(data, width_um,
+                            ~mean(..1$gfp_nb/rod_volume(..1$length_um, ..2))),
+           gfp_sd = map2_dbl(data, width_um, 
+                            ~sd(..1$gfp_nb/rod_volume(..1$length_um, ..2))),
            gfp_b = 5.3e-5/5, # Kaiser2018 reports 5.3e-5 / sec for 5x stronger illumination
            gfp_tot = gfp_m * (1 + gfp_b/grate),
            time_birth=map_dbl(data, ~min(.$time_sec)),
            grate2=grate/log(2)*3600,
     ) %>% 
-    group_by(date, condition) %>% 
+    group_by(date, condition) %>%
     filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
     mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
     filter(induced==1) %>% 
-    filter(n()>10) %>% 
-    parse_sugarmix_conds(condition) %>% 
-    filter(treatment=="iptg") %>% 
+    filter(grate2 > .01) %>% 
+   
+   # compute summary stats
     group_by(date, glu) %>% 
     summarise(grate2_m=mean(grate2), grate2_sd=sd(grate2), 
-              gfp2_m=exp(mean(log(gfp_tot), na.rm=T)),
-              gfp2_min=exp(mean(log(gfp_tot), na.rm=T) - sd(log(gfp_tot), na.rm=T)),
-              gfp2_max=exp(mean(log(gfp_tot), na.rm=T) + sd(log(gfp_tot), na.rm=T)),
+              # gfp2_m=exp(mean(log(gfp_tot), na.rm=T)),
+              # gfp2_min=exp(mean(log(gfp_tot), na.rm=T) - sd(log(gfp_tot), na.rm=T)),
+              # gfp2_max=exp(mean(log(gfp_tot), na.rm=T) + sd(log(gfp_tot), na.rm=T)),
+              gfp2_m=mean(gfp_tot, na.rm=T) * 1e21 / 6.02e23,
+              gfp2_sd=sd(gfp_tot, na.rm=T)  * 1e21 / 6.02e23,
               n=n()
               ) %>%  
     # lm(gfp_m~grate2, data=.)
     ungroup() %>% 
-    mutate(glu=factor(glu),
+    mutate(glucose=glu, glu=factor(glu),
            glu=factor(glu, labels=paste(levels(glu), 'µM')) ) %>% 
+    # (function(.df) {
+    #   cat( format_csv(select(.df, -glu)) )
+    #   print( summary(lm(gfp2_m~grate2_m, data=.df)) )
+    #   return(.df)
+    # }) %>% 
     ggplot(aes(grate2_m, gfp2_m, col=glu)) +
     stat_smooth(method="lm", fullrange=TRUE, se=FALSE, col="black") +
     geom_errorbarh(aes(xmin=grate2_m-grate2_sd, xmax=grate2_m+grate2_sd), height=0, show.legend=F) + 
-    geom_errorbar(aes(ymin=gfp2_min, ymax=gfp2_max), width=0, show.legend=F) + 
+    geom_errorbar(aes(ymin=gfp2_m-gfp2_sd, ymax=gfp2_m+gfp2_sd), width=0, show.legend=F) + 
     geom_point(size=4) +
     scale_color_viridis_d(end = .85) +
     scale_x_continuous(breaks=c(0, 0.5, 1)) +
     expand_limits(y=0) +
     # expand_limits(x=c(0, 1.1), y=0) +
-    labs(x="growth rate (dbl/h)", y="[LacZ-GFP] (FP/µm)", col="[glucose]") +
+    labs(x="growth rate (dbl/h)", y="[LacZ-GFP] (µM)", col="[glucose]") +
     theme_cowplot_legend_inset() +
     theme(legend.position=c(.95, .95), legend.justification=c(1, 1)) +
     NULL)
