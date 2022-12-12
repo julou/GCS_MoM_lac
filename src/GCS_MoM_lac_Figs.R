@@ -322,6 +322,7 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_mode
               axis.text.x = element_blank(), # axis.title.x = element_blank(), 
               panel.spacing.x = unit(0.5, "lines"),
               # axis.title.y = element_text(margin=margin(t=30)), 
+              axis.text.y = element_text(margin = margin(r=3, l=-8)),
               plot.margin = margin(7, 7, 2, 7),
         ) +
         NULL,
@@ -336,11 +337,12 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_mode
                             guide=guide_legend(ncol=2)
         ) +
         coord_cartesian(ylim=c(NA, 1400)) +
-        labs(y="[LacZ-GFP]          \n(FP/µm)          ", col="") +
+        labs(y="[LacZ-GFP]          \n(FP/µm)           ", col="") +
         theme_cowplot_legend_inset() +
         theme(strip.text.x = element_blank(), legend.position = "bottom", 
               panel.spacing.x = unit(0.5, "lines"),
               # axis.title.y = element_text(margin=margin(t=50)),
+              axis.text.y = element_text(margin = margin(r=3, l=-8)),
               
               legend.margin = margin(t=-12, b=-4),
               plot.margin = margin(0, 7, 5, 7),
@@ -371,7 +373,7 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_mode
     ncol=1, rel_heights = c(1, 1.45), labels = c("E", "F"), align="v", axis="l"
   ),
   
-  nrow = 1, rel_widths = c(.85, 1, 1)
+  nrow = 1, rel_widths = c(.8, 1.05, 1)
 ) )
 
 save_plot(here("plots", "figs", "GCS_MoM_lac_fig_lac.pdf"), myfigs[['GCS_lac']],
