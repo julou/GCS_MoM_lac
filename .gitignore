@@ -1,6 +1,7 @@
 .Rproj.user
 .Rhistory
 *.RData*
+!data/**/*.RData
 plots
 preproc
 data_*
