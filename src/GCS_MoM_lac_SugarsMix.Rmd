@@ -937,7 +937,22 @@ myrates_mix %>%
        theme_cowplot() +
        NULL
    }))
-  
+
+# Formula: gr_mean ~ .monod(glu, gr_max, glu_half)
+# 
+# Parameters:
+#          Estimate Std. Error t value Pr(>|t|)    
+# gr_max    0.98120    0.05581  17.581 7.54e-09 ***
+# glu_half 10.15356    2.07457   4.894 0.000628 ***
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.08315 on 10 degrees of freedom
+# 
+# Number of iterations to convergence: 8 
+# Achieved convergence tolerance: 1.957e-06
+
+
 # plotting 1/gr vs 1/glu
 (myplots[['sugarmix_monod_inv']] <- 
     myrates_mix %>%
@@ -986,6 +1001,31 @@ myrates_mix %>% ungroup() %>%
   group_by(date, condition) %>% 
   mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
   parse_sugarmix_conds(condition) %>% 
+  filter(induced==1) %>% 
+  filter(n()>10) %>% 
+  ggplot(aes(gfp_m, col=factor(date))) +
+  facet_grid(glu~treatment) +
+  geom_freqpoly(aes(y=after_stat(density), size=prop, group=interaction(date, condition, prop)), bins=100) +
+  # scale_y_continuous(breaks = scales::breaks_extended(n=3)) +
+  # coord_cartesian(xlim=c(-.25, 1.5), ylim=c(0, 3.5)) +
+  scale_size_continuous(range=c(0.05, 1), guide='none') +
+  scale_x_log10() +
+  labs(x='[LacZ-GFP] (AU)') +
+  theme(legend.position = 'top') +
+  NULL
+```
+
+```{r eval=FALSE}
+myrates_mix %>% ungroup() %>% 
+  mutate(gfp_m = map_dbl(data, ~mean(.$gfp_nb/.$length_um)),
+         gfp_sd = map_dbl(data, ~sd(.$gfp_nb/.$length_um)),
+         time_birth=map_dbl(data, ~min(.$time_sec)),
+  ) %>% 
+  group_by(date, condition) %>% 
+  # filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+  mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+  parse_sugarmix_conds(condition) %>% 
+  filter(treatment=="iptg") %>% 
   filter(induced==1) %>% 
   filter(n()>10) %>% 
   ggplot(aes(gfp_m, col=factor(date))) +
@@ -1167,8 +1207,8 @@ rod_volume <- function(.l, .w) pi * ( (.w/2)^2 * (.l - .w) + 4/3 * (.w/2)^3 )
     group_by(date, condition) %>%
     filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
     mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
-    filter(induced==1) %>% 
-    filter(grate2 > .01) %>% 
+    filter(induced==1) %>%
+    filter(grate2 > .01) %>%
    
    # compute summary stats
     group_by(date, glu) %>% 
@@ -1176,6 +1216,7 @@ rod_volume <- function(.l, .w) pi * ( (.w/2)^2 * (.l - .w) + 4/3 * (.w/2)^3 )
               # gfp2_m=exp(mean(log(gfp_tot), na.rm=T)),
               # gfp2_min=exp(mean(log(gfp_tot), na.rm=T) - sd(log(gfp_tot), na.rm=T)),
               # gfp2_max=exp(mean(log(gfp_tot), na.rm=T) + sd(log(gfp_tot), na.rm=T)),
+              # conversion to molar units from FP/volume:  * 1e21 / 6.02e23
               gfp2_m=mean(gfp_tot, na.rm=T) * 1e21 / 6.02e23,
               gfp2_sd=sd(gfp_tot, na.rm=T)  * 1e21 / 6.02e23,
               n=n()

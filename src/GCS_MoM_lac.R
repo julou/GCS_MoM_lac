@@ -1,4 +1,7 @@
 # SET ENVIRONMENT
+# source(file.path(Sys.getenv("LMOD_PKG"), "/init/R"))
+# module("load", "git-lfs")
+
 suppressPackageStartupMessages({
   library(here)
   library(tidyverse)
@@ -16,7 +19,7 @@ theme_cowplot_legend_inset <- function(.rel=12/14) theme(legend.title=element_te
 
 # set a parallel environment to run multidplyr (ALL packages explicitely loaded before will be loaded too)
 library(multidplyr)
-mycluster <- min(30, parallel::detectCores()-1) %>%  # do not use more than 30 cores
+mycluster <- min(28, parallel::detectCores()-1) %>%  # do not use more than 28 cores
   new_cluster(.options = callr::r_session_options(user_profile = FALSE)) %>% # disable user profile to avoid endless startup with `renv`
   cluster_library( # load currently loaded packages on each core (but multidplyr)
     sessionInfo()$otherPkgs %>% names() %>% setdiff("multidplyr")
