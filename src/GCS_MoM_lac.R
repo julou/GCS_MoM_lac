@@ -278,6 +278,9 @@ knitr::opts_chunk$set(
 rmarkdown::render_site('./src/GCS_MoM_lac_Lags_Estimation.Rmd') # rendered but not included in the menu links
 rmarkdown::render_site('./src/GCS_MoM_lac_Transient_Arrest.Rmd')
 rmarkdown::render_site('./src/GCS_MoM_lac_SugarsMix.Rmd')
+## add 1 or 2 files where data lives in myframes_realtrace
+## if relevant, stop the first file at the point where realtrace should be run, and start the second one by loading its output
+# rmarkdown::render_xxx('./src/GCS_MoM_lac_SugarsMixRealTrace.Rmd') # prepare data for RT - to be run in local envt only
 rmarkdown::render_site('./src/index.Rmd') # render last
 
 
@@ -291,4 +294,13 @@ myfigs <- list()
 source('./src/GCS_MoM_lac_Figs.R')
 source('./src/GCS_MoM_lac_FigsSI.R')
 
-save.image(".RData")
+# save.image(".RData")
+ls(all.names = TRUE) %>% 
+  setdiff(c("mycluster", "myplots")) %>% # exclude large "derived" variables from RData file
+  setdiff(c("myplots_miller")) %>% 
+  # setdiff(c("scale_color_sugars")) %>% # mind the special case where the super-assigned function inherits its whole environment
+  save(list=., file=".RData", envir=.GlobalEnv)
+
+# # useful for figuring out the real size of each object
+# sapply(ls(), function(.x) save(list=.x, file=paste0("vars/", .x, ".RData")) )
+

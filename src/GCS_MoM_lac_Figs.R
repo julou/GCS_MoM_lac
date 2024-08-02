@@ -10,13 +10,17 @@ myfigs <- list()
    extract(path, c('curve', 'branch'), ".*/lac_induc(\\d)_(.+)\\.txt") %>% 
    ggplot() +
    geom_line(aes(exp(X1), exp(X2), lty=branch, col=curve)) +
-   scale_x_log10(breaks=c(1e-4, 1e-3, 1e-2, .1), expand=c(0, 0),
-                 labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-   scale_y_log10(breaks=c(10, 1e3, 1e5),
-                 # breaks = trans_breaks("log10", function(x) 10^x),
-                 labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-   expand_limits(y=c(2.5, 1e5)) +
-   labs(x=expression(paste('inducer level ', italic('b'))), y='LacY molecules') +
+   # scale_x_log10(breaks=c(1e-4, 1e-3, 1e-2, .1), expand=c(0, 0),
+   #   labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+   # scale_y_log10(breaks=c(10, 1e3, 1e5),
+   #               # breaks = trans_breaks("log10", function(x) 10^x),
+   #               labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+   # expand_limits(y=c(2.5, 1e5)) +
+   scale_x_log10(labels = ~formatC(., digits=1, format="fg")) +
+   scale_y_log10(labels = ~formatC(., digits=1, format="fg")) +
+   expand_limits(y=c(2e-3, 2e2)) +
+   # labs(x=expression(paste('inducer level ', italic('b'))), y='LacY molecules') +
+   labs(x='external TMG concentration (µM)', y='LacY/LacZ expression (µM)') +
    scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dotted')) +
    scale_color_manual(values=c('1'='black', '2'='grey60')) +
    theme(legend.position = 'none') +
@@ -39,12 +43,16 @@ myfigs <- list()
     geom_vline(xintercept = log(2)/0.5*10, lty='dashed', col='grey60') +
     annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
     annotate("text", x=Inf, y=Inf, label='induced', hjust=1.1, vjust=1.5) +
-    scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
-    scale_y_log10(breaks=c(1e-6, 1e-3, 1), expand=c(0, 0),
-                  # breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    expand_limits(y=c(5e-7, 2)) +
-    labs(x='doubling time (h)', y=expression(paste('inducer level ', italic('b')))) +
+    # scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
+    # scale_y_log10(breaks=c(1e-6, 1e-3, 1), expand=c(0, 0),
+    #               # breaks = trans_breaks("log10", function(x) 10^x),
+    #               labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+    # expand_limits(y=c(5e-7, 2)) +
+    # labs(x='doubling time (h)', y=expression(paste('inducer level ', italic('b')))) +
+    scale_x_log10(expand=c(0, 0), labels = ~formatC(., digits=1, format="fg")) +
+    scale_y_log10(expand=c(0, 0), labels = ~formatC(., digits=1, format="fg")) +
+    expand_limits(y=c(2e-4, 4e2)) +
+    labs(x='doubling time (h)', y='external TMG concentration (µM)') +
     # scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dashed')) +
     scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
     theme(legend.position = 'none') +
@@ -64,12 +72,16 @@ myfigs <- list()
     geom_vline(xintercept = log(2)/0.5*10, lty='dashed', col='grey60') +
     annotate("text", x=0, y=0, label='uninduced', hjust=-0.1, vjust=-1.1) +
     annotate("text", x=Inf, y=Inf, label='induced', hjust=1.1, vjust=1.5) +
-    scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
-    scale_y_log10(breaks=c(1e-6, 1e-3, 1), expand=c(0, 0),
-                  # breaks = trans_breaks("log10", function(x) 10^x),
-                  labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    expand_limits(x=.3, y=5e-7) +
-    labs(x='doubling time (h)', y=expression(paste('inducer level ', italic('b')))) +
+    # scale_x_log10(breaks=c(1, 10, 100), expand=c(0, 0)) +
+    # scale_y_log10(breaks=c(1e-6, 1e-3, 1), expand=c(0, 0),
+    #               # breaks = trans_breaks("log10", function(x) 10^x),
+    #               labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+    # expand_limits(x=.3, y=5e-7) +
+    # labs(x='doubling time (h)', y=expression(paste('inducer level ', italic('b')))) +
+    scale_x_log10(expand=c(0, 0), labels = ~formatC(., digits=1, format="fg")) +
+    scale_y_log10(expand=c(0, 0), labels = ~formatC(., digits=1, format="fg")) +
+    expand_limits(x=.8, y=c(1.1e-3)) +
+    labs(x='doubling time (h)', y='external TMG concentration (µM)') +
     # scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dashed')) +
     scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
     theme(legend.position = 'none') +
@@ -249,16 +261,15 @@ myfigs <- list()
   load(list.files("data", "GCS_Miller_lac_plots_\\w+\\.RData", full.names=TRUE) ) # do NOT use load() after %>%
   # load('data/TMG_sensitivity_Miller_plots.RData')
   myplots_miller <<- myplots
-  # TODO: load from RData file to global env
-  mysugars <<- c('0.2% arabinose+CA'='M9+0.2ara+CA', '0.2% arabinose'='M9+0.2ara', '0.2% glycerol'='M9+0.2gly', 
-                '0.2% mannose'='M9+0.2man', '0.2% pyruvate'='M9+0.2pyr',
-                '0.2% ribose'='M9+0.2rib', '0.2% succinate'='M9+0.2suc', '0.4% rhamnose'='M9+0.4rhm')
-  scale_color_sugars <<- function(...) 
-    ggplot2::scale_color_manual(..., values = c(qual_cols, "gray30"), na.value='gray70', 
-                                breaks = mysugars, labels = names(mysugars), 
-                                limits = function(.l) intersect(mysugars, .l) )
-  
 })()
+# TODO: load from RData file to global env
+mysugars <- c('0.2% arabinose+CA'='M9+0.2ara+CA', '0.2% arabinose'='M9+0.2ara', '0.2% glycerol'='M9+0.2gly', 
+               '0.2% mannose'='M9+0.2man', '0.2% pyruvate'='M9+0.2pyr',
+               '0.2% ribose'='M9+0.2rib', '0.2% succinate'='M9+0.2suc', '0.4% rhamnose'='M9+0.4rhm')
+scale_color_sugars <- function(...) ggplot2::scale_color_manual(
+  ..., values = c(qual_cols, "gray30"), na.value='gray70', 
+  breaks = mysugars, labels = names(mysugars), 
+  limits = function(.l) intersect(mysugars, .l) )
 
 
 ### ### ### ###
@@ -296,9 +307,13 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_mode
   plot_grid(
     NULL,
     myplots[['lac_model_const_phdiag']] +
-      labs(y=expression(paste('inducer level ', italic('b'), '      ')) ),
+      # labs(y=expression(paste('inducer level ', italic('b'), '      ')) ) +
+      labs(y="external [TMG] (µM)              " ) +
+      NULL,
     myplots[['lac_model_induction']] +
-      labs(y="LacY molecules         "),
+      # labs(y="LacY molecules         ") +
+      labs(x="external [TMG] (µM)", y="[LacY] (µM)   ") +
+      NULL,
     ncol=1, rel_heights = c(1, 1, 1), labels=c("AUTO")
   ),
   

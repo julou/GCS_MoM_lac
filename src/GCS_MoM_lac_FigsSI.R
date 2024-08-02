@@ -257,7 +257,8 @@ plot_grid(
     expand_limits(x=c(-.1, 1.4)) +
     labs(y='max [LacZ] (MU)      ') +
     NULL,
-  myplots[['lac_model_crp_phdiag']],
+  myplots[['lac_model_crp_phdiag']] +
+    labs(y="external [TMG] (µM)"),
   # NULL,
   nrow=1, labels="AUTO") %>% 
   save_plot(here("plots", "SI_figs", "native-lac-model.pdf"), .,
@@ -270,7 +271,7 @@ plot_grid(
 # SUGAR MIXTURES ####
 
 mytables[['sugarmix_list']] %>%
-  mutate(treatment=fct_recode(treatment, 'glucose only'='none', 'with lactose 0.58 mM'='lac002', 'with IPTG 200µM'='iptg')) %>% 
+  mutate(treatment=fct_recode(treatment, 'glucose only'='none', 'with lactose 0.55 mM'='lac002', 'with IPTG 200µM'='iptg')) %>% 
   mutate_if(is.numeric, list(as.character)) %>% # protect existing rounding of floats
   knitr::kable("latex", booktabs=TRUE, #longtable = TRUE,
                label="sugarmix-list", 
@@ -296,7 +297,7 @@ plot_grid(
     myplots[['sugarmix_indn_thr']] +
       labs(col="[glucose]\n(µM)") +
       theme_cowplot_legend_inset() +
-      labs(title="with lactose 0.58 mM") ,
+      labs(title="with lactose 0.55 mM") ,
   nrow=1, rel_widths = c(1, 1.2), labels=c("A", "C")),
   myplots[['sugarmix_gr_pos']] +
     # guides(col=guide_colorbar()) +
