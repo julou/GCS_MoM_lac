@@ -278,9 +278,66 @@ knitr::opts_chunk$set(
 rmarkdown::render_site('./src/GCS_MoM_lac_Lags_Estimation.Rmd') # rendered but not included in the menu links
 rmarkdown::render_site('./src/GCS_MoM_lac_Transient_Arrest.Rmd')
 rmarkdown::render_site('./src/GCS_MoM_lac_SugarsMix.Rmd')
-## add 1 or 2 files where data lives in myframes_realtrace
-## if relevant, stop the first file at the point where realtrace should be run, and start the second one by loading its output
-# rmarkdown::render_xxx('./src/GCS_MoM_lac_SugarsMixRealTrace.Rmd') # prepare data for RT - to be run in local envt only
+
+
+# Analyis of instantaneous rates for sugar mixtures experiments (using RealTrace) ####
+# FROM THEO
+autofluo_predict_theo <- function(.h) .h * 354 # see https://rchat-nimwegen.biozentrum.unibas.ch/direct/n2RKsBKK4T5PXsjQDsSpmG4CCyrBukg5Pj?msg=prGaGMwgffD2GkXzt
+fp_per_dn_theo <- fp_per_dn * 5/3 # 
+
+myframes_realtrace <-
+  myframes %>%
+  filter(!discard_top, !discard_start) %>%
+  filter(date %in% c("20210122", "20210305", "20210504", "20210506", "20210708"),
+         str_detect(condition, "lac")) %>%
+  filter(!(date==20210122 & condition=="lac002_glu16uM")) %>%
+  mutate(fluo_ampl_ch_1=ifelse(frame %% 3, NA, fluo_ampl_ch_1)) %>%  # We skipped 1 frames out of 3, but a value is exported for it that we need to correct
+  select(date, pos, gl, condition, m_start, m_end, gl_id, cell, start_time, end_time, end_type,  b_rank, id, parent_id, time_sec, length_um, fluo_ampl_ch_1) %>% 
+  bind_rows(
+    # append Theo's supplementary data (more GLs analysed with deepMoMA at intermediate concentration).
+    read_csv('./data/20240910_myframes_deepMoMA_export.csv')
+    )
+
+# export for RealTrace
+myframes_realtrace %>% 
+  ungroup() %>%
+  filter(!is.na(time_sec),
+         !is.na(length_um),
+         !is.na(fluo_ampl_ch_1)) %>% 
+  filter(fluo_ampl_ch_1 > 1) %>% #Some data points have near 0 fluorescence, it leads the program to crash
+  ungroup() %>% 
+  select(date, condition, m_start, m_end, gl_id, cell, id, parent_id, time_sec, length_um, fluo_ampl_ch_1) %>% 
+  group_by(condition) %>% 
+  group_walk(~write_csv(.x, sprintf("./realtrace/experimental_data/%s.csv", .y$condition)))
+
+# call RealTrace *manually* ...
+
+# import RealTrace output, correct autofluo and convert GFP units #####
+myframes_realtrace <- myframes_realtrace %>% 
+  mutate(parent_id = paste(date, pos, gl, parent_id, sep = ".")) %>% 
+  full_join(
+    list.files("./realtrace/output", ".*prediction.csv", recursive=TRUE, full.names=TRUE)  %>%
+      data.frame(path=., stringsAsFactors=FALSE)  %>%
+      tidyr::extract(path, c("condition"), ".*/output/(lac.*)_f.*_b.*prediction\\.csv", remove=FALSE, convert=TRUE) %>%
+      group_by(condition) %>% 
+      mutate(df = map(path, ~read.csv(.x, skip = 13))) %>%
+      unnest(df)  %>%
+      select(-path,
+             time_sec = time,
+             cell = cell_id) %>%
+      mutate(time_sec = round(time_sec*3600)) %>%  # Time is converted to hours from RealTrace, and we noticed that the time_sec was sometimes not an integer values otherwise.
+      mutate(fluogfp_amplitude = mean_g - autofluo_predict_theo(exp(mean_x))) %>% #We correct the fluorescence on the predicted one
+      mutate(gfp_nb = fluogfp_amplitude * fp_per_dn_theo ) %>% 
+      group_by(cell) %>% 
+      mutate(
+        mean_growth_rate = mean(mean_l, na.rm = T),
+        q_gfp = (mean_q - autofluo_predict_theo(mean_growth_rate))*fp_per_dn_theo, #We correct the autofluorescence contribution to the volumic production based on average cell growth rate, and convert it to gfp units.
+        c_gfp = gfp_nb/exp(mean_x),
+        mean_growth_rate = NULL) 
+  )
+
+rmarkdown::render_site('./src/GCS_MoM_lac_SugarsMix_realtrace.Rmd')
+
 rmarkdown::render_site('./src/index.Rmd') # render last
 
 

@@ -80,7 +80,7 @@ myfigs <- list()
     # labs(x='doubling time (h)', y=expression(paste('inducer level ', italic('b')))) +
     scale_x_log10(expand=c(0, 0), labels = ~formatC(., digits=1, format="fg")) +
     scale_y_log10(expand=c(0, 0), labels = ~formatC(., digits=1, format="fg")) +
-    expand_limits(x=.8, y=c(1.1e-3)) +
+    expand_limits(x=.5, y=c(1.1e-3)) +
     labs(x='doubling time (h)', y='external TMG concentration (µM)') +
     # scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dashed')) +
     scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
@@ -107,7 +107,8 @@ myfigs <- list()
                   # breaks = trans_breaks("log10", function(x) 10^x),
                   labels = scales::trans_format("log10", scales::math_format(10^.x))) +
     expand_limits(x=.35, y=c(2e-4, 20)) +
-    labs(x='doubling time (h)', y='basal production rate       ') +
+    labs(x='doubling time (h)', y=expression(paste("basal prod. rate (µm", ""^-3, " h"^-1, ")              ")) ) +
+    # labs(x='doubling time (h)', y=expression("prod. rate ("mu m^-3" h"^-1")")) +
     # scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dashed')) +
     scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
     theme(legend.position = 'none') +
@@ -125,7 +126,7 @@ myfigs <- list()
     scale_y_log10(breaks=c(1e-1, 1e1, 1e3),
                   # breaks = trans_breaks("log10", function(x) 10^x),
                   labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    labs(x='doubling time (h)', y=expression(paste('TF concentration ', italic('x'), '            '))) +
+    labs(x='doubling time (h)', y=expression(paste('TF conc. ', italic('x'), ' (µm', ''^-3, ')          '))) +
     scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dotted')) +
     theme(legend.position = 'none') +
     NULL
@@ -171,7 +172,7 @@ myfigs <- list()
     scale_y_log10(breaks=c(1e-1, 1e1, 1e3),
                   # breaks = trans_breaks("log10", function(x) 10^x),
                   labels = scales::trans_format("log10", scales::math_format(10^.x))) +
-    labs(x='doubling time (h)', y=expression(paste('TF concentration ', italic('x'), '            '))) +
+    labs(x='doubling time (h)', y=expression(paste('TF conc. ', italic('x'), ' (µm', ''^-3, ')          '))) +
     scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dotted')) +
     scale_color_manual(values=c('100'='grey50', '10000'='black')) +
     theme(legend.position = 'none') +
@@ -219,7 +220,7 @@ myfigs <- list()
                   # breaks = trans_breaks("log10", function(x) 10^x),
                   labels = scales::trans_format("log10", scales::math_format(10^.x))) +
     expand_limits(y=c(1e-1, 1e3)) +
-    labs(x=expression(paste('signal strength ', s / s[0], '     ' )), y=expression(paste('TF concentration ', italic('x'), '            '))) +
+    labs(x=expression(paste('signal strength ', s / s[0], '     ' )), y=expression(paste('TF conc. ', italic('x'), ' (µm', ''^-3, ')          '))) +
     scale_linetype_manual(values=c('high'='solid', 'low'='solid', 'unstable'='dotted')) +
     scale_color_manual(values=c('2'='grey50', '20'='black')) +
     theme(legend.position = 'none') +
@@ -227,28 +228,29 @@ myfigs <- list()
 )
 
 (myplots[['critic_conc_monod']] <- (function() {
-  lamstar <- 1.2
-  mux <- 1/48
-  muy <- 1/48
+  lamstar <- 0.6
+  mux <- 0
   ggplot() +
     # stat_function(fun=~ (.+mux)/(lamstar-.), position='jitter') +
-    stat_function(aes(ymin=after_stat(log10(y)), ymax=Inf, fill="lower"), n=501,
-                  fun=~ 7.9^(-1/2) * (.+mux)/(lamstar-.), geom='ribbon') +
-    stat_function(aes(y=after_stat(log10(y)), col="lower"), n=501,
-                  fun=~ 7.9^(-1/2) * (.+mux)/(lamstar-.)) +
-    stat_function(aes(ymin=after_stat(log10(y)), ymax=Inf, fill="upper"), n=501,
-                  fun=~ 7.9^(1/2) * (.+mux)/(lamstar-.), geom='ribbon') +
-    stat_function(aes(y=after_stat(log10(y)), col="upper"), n=501,
-                  fun=~ 7.9^(1/2) * (.+mux)/(lamstar-.)) +
-    stat_function(aes(y=after_stat(log10(y))), fun=~ ./(lamstar-.), lty='dotted') +
-    annotate("text", x=1.2, y=-2, label='uninduced', hjust=1.5, vjust=0) +
+    stat_function(aes(ymin=after_stat(y), ymax=Inf, fill="lower"), n=501,
+                  fun=~ 1/2.81 * 85 * (.*log(2)+mux)/(lamstar-.*log(2)), geom='ribbon') +
+    stat_function(aes(col="lower"), n=501,
+                  fun=~ 1/2.81 * 85 * (.*log(2)+mux)/(lamstar-.*log(2))) +
+    stat_function(aes(ymin=after_stat(y), ymax=Inf, fill="upper"), n=501,
+                  fun=~ 2.81 * 85 * (.*log(2)+mux)/(lamstar-.*log(2)), geom='ribbon') +
+    stat_function(aes(col="upper"), n=501,
+                  fun=~ 2.81 * 85 * (.*log(2)+mux)/(lamstar-.*log(2))) +
+    stat_function(fun=~ 85 * (.*log(2)+mux)/(lamstar-.*log(2)), n=501, lty='dotted') +
+    annotate("text", x=0.95, y=0.6, label='uninduced', hjust=1.1, vjust=0) +
     annotate("text", x=0, y=Inf, label='induced', hjust=-.1, vjust=2) +
-    coord_cartesian(xlim=c(-.0, 1.2), ylim=c(-2.6, 3), expand = FALSE) +
+    coord_cartesian(xlim=c(-.02, 1.04), ylim=c((0.5), (6e3)), expand = FALSE) +
     # coord_cartesian(xlim=c(-0.01, 1.2), expand = FALSE) +
-    scale_x_continuous(limits=c(-.01, 1.2), breaks=scales::breaks_pretty(n=4)) +
-    scale_y_continuous(breaks=seq(-2, 2, 2), labels = 10^seq(-2, 2, 2)) +
+    # scale_x_continuous(limits=c(0, NA), breaks=scales::breaks_pretty(n=4)) +
+    scale_x_continuous(limits=c(0, NA), breaks=c(0, 0.5, 1)) +
+    # scale_y_continuous(breaks=seq(0, 3), labels = 10^seq(0, 3)) +
+  scale_y_log10() +
     scale_fill_manual(values=qual_cols %>% hex_lighten(1.2) %>% hex_desaturate(.3)) +
-    labs(x="growth rate (dbl/h)", y="critical nutrient concentration c/c0") +
+    labs(x="growth rate (dbl/h)", y="critical nutrient concentration (µM)") +
     guides(col='none', fill='none') +
     NULL
 })() )
@@ -501,25 +503,27 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[[2]],
 ### ### ### ###
 #### FIG GCS with regulation ####
 (myfigs[['GCS_regul']] <- plot_grid(
-  # plots row
+  nrow=2, labels="", rel_heights=c(2, 1),
   plot_grid(
+  # plot first two rows
+    align='v', nrow=1, rel_widths = c(1.1, 1.5, 1), labels=c("", "C", ""),
+    plot_grid(
+    ncol=1, rel_heights = c(1, 1), labels = c("A", "B"),
     myplots[['critic_conc_monod']] +
-      # labs(y=expression(paste("critical nutrient concentration ", c/c[0])) ) +
-      labs(y="critical nutrient\nconcentration c/c0") +
-      # labs(y="critical nutrient<br/>concentration c/c<sub>0</sub>") +
+      labs(y="critical nutrient\nconcentration (µM)") +
       # theme(axis.title.x = element_markdown()) +
       NULL,
     myplots[['sugarmix_crp']] +
       expand_limits(x=c(-.1, 1.3)) +
-      coord_cartesian(xlim=c(0, 1.15), ylim=c(0, NA)) +
+      coord_cartesian(xlim=c(0, 1.2), ylim=c(0, NA), expand=FALSE) +
       # theme(legend.position = 'right') +
       theme(legend.position = c(1, 1), legend.justification = c(1, 1)) +
-      NULL,
-    ncol=1, rel_heights = c(1, 1), labels = c("A", "B")),
+      NULL),
   
   myplots[['sugarmix_induction']](.xbreaks = 2 * 10^(0:4)),
   
   plot_grid(
+    ncol=1, rel_heights = c(1, 1.2), labels = c("G", "H"),
     myplots_miller[['GCS_cm_maxindct']](strain=='MG1655') +
       scale_x_continuous(breaks=c(0, 0.5, 1)) +
       coord_cartesian(xlim=c(0, 1.25), ylim=c(0, NA)) +
@@ -538,14 +542,24 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[[2]],
       guides(col=guide_colourbar(direction = "horizontal", title.position = "left", barwidth=unit(58, 'pt'))) +
       theme(legend.position = 'top') +
       # theme(legend.position = c(0.03,0.03), legend.justification = c(0,0)) +
-      NULL,
-    ncol=1, rel_heights = c(1, 1.2), labels = c("D", "E")), align='v',
+      NULL) 
+  ),
   
-  nrow=1, rel_widths = c(1.1, 1.5, 1), labels=c("", "C", "")
+  cowplot::plot_grid(
+    ncol = 3, labels = c("D","E","F"), rel_widths = c(0.33, 0.33, 0.34), 
+    myplots[['sugarmix_singlecell_traces']],
+    myplots[['sugarmix_singlecell_phasediagram']],
+    myplots[['sugarmix_singlecell_gr_diff']] +
+      scale_x_discrete( labels=c("Low C"="Switch ON", "High C"="Switch OFF")) +
+      # theme(legend.key.spacing = unit(rel(0.5), "pt")), 
+      theme(legend.text = element_text(margin = margin(r=12, unit = "pt")),
+            legend.spacing.x = unit(0, "pt"))
+  )
 ) )
 save_plot(here("plots", "figs", "GCS_MoM_lac_fig_regul.pdf"), myfigs[['GCS_regul']],
           base_height=NULL, base_width=4.75 * 14/7, # 2 cols
-          base_asp = 1.8
+          base_asp = 1.2
 )
+ 
 
 

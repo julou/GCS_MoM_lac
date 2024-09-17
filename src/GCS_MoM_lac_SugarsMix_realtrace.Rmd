@@ -1,0 +1,1993 @@
+---
+title: "GCS MoM lac SugarMix realtrace plots"
+author: "Théo Gervais"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+---
+
+```{r include=FALSE}
+
+condition_names <- c(
+  "lac002" = "lac 0.02%",
+  "lac002_glu2uM" = "lac+glu 2µM",
+  "lac002_glu4uM" = "lac+glu 4µM",
+  "lac002_glu8uM" = "lac+glu 8µM",
+  "lac002_glu16uM" = "lac+glu 16µM",
+  "lac002_glu32uM" = "lac+glu 32µM",
+  "lac002_glu64uM" = "lac+glu 64µM",
+  "lac002_glu128uM" = "lac+glu 128µM",
+  "lac002_glu002" = "lac+glu 0.02%",
+  "lac002" = "lac 0.02%",
+  "growth_rate" = "Growth rate \n (dbl/h)",
+  "production_rate" = "Vol. prod. rate\n (FP/h/µm)",
+  "down" = "Uninduced",
+  "going_up" = "High prod., low c",
+  "up" = "Induced",
+  "going_down" = "Low prod., high c",
+  "Low C" = "Low conc.",
+  "High C" = "High conc."
+)
+
+ccc <- function(.vect) { #cell color cycle
+
+  .unique_vect <- unique(.vect)
+  .seq = seq_along(.unique_vect)
+  .char = nchar(.seq)
+  .named_vect = as_numeric(substr(.seq, .char, .char))
+  names(.named_vect) <- .unique_vect
+
+  # browser()
+
+  as.factor(.named_vect[as.character(.vect)])
+
+}
+
+```
+
+
+# Sanity checks  
+
+We want to start by checking that the growth rates are the ones we expect to see, in relation with the bulk level analysis
+
+## Sanity check on instantaneous growth rate distribution
+
+```{r}
+
+myframes_realtrace %>%
+  mutate(induced=gfp_nb>250) %>%
+  filter(time_sec > 5 * 3600,
+         ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_sec < 14 * 3600) ) %>% 
+  mutate(grate = mean_l/log(2)) %>%
+  group_by(condition, induced) %>%
+  # group_by(date, condition, induced) %>% 
+  mutate(mean_grate = mean(grate, na.rm = T)) %>% 
+  group_by(condition) %>%
+  # group_by(date, condition) %>% summarise(prop_induced = mean(induced, na.rm = T)) %>% filter(str_detect(condition, "32|64"))
+  mutate(prop_induced = mean(induced, na.rm = T)) %>% 
+  ungroup() %>% 
+  mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+  ggplot()+
+  facet_wrap(~condition, labeller = as_labeller(condition_names))+
+  geom_freqpoly(aes(x=grate, y=after_stat(density), col = induced), binwidth = 0.01)+
+  geom_text(aes(x=POS, y=7.5, label = format(mean_grate, digits = 2), col = induced), data = . %>% distinct(condition, induced, mean_grate) %>% mutate(POS = ifelse(induced, 1.25, 0.5)))+
+  geom_text(aes(x=1, y=5, label =paste0("Proportion induced : ", format(prop_induced, digits = 3))), data = . %>% distinct(condition, prop_induced) )+
+  coord_cartesian(xlim = c(-0.1, 1.75))+
+  scale_colour_manual(name = "subpopulation",
+                      values = RColorBrewer::brewer.pal(5,"Set1")[c(5,2)],
+                      breaks = c(T, F),
+                      labels = c("Induced", "Uninduced") 
+                      )+
+  labs(x="Growth rate (dbl/h)")+
+  NULL
+
+```
+
+
+
+## Sanity check on average cell growth rate distribution
+
+```{r}
+
+myframes_realtrace %>% 
+  mutate(induced=gfp_nb>250) %>%
+  filter(time_sec > 5 * 3600,
+         ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_sec < 14 * 3600) ) %>%
+  mutate(grate = mean_l/log(2)) %>%
+  group_by(date, condition, induced, cell) %>% 
+  summarise(cell_grate = mean(grate, na.rm = T),
+            induced = round(mean(induced, na.rm = T))) %>% 
+  group_by(date, condition) %>% 
+  filter(!is.na(induced)) %>%
+  mutate(prop_induced = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
+  ungroup() %>% 
+  mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+  ggplot()+
+  facet_wrap(~condition, labeller = as_labeller(condition_names))+
+  geom_freqpoly(aes(x=cell_grate, y=after_stat(density), col = as.factor(induced), group=interaction(induced, date), linewidth = prop_induced), binwidth = 0.1)+
+  # geom_text(aes(x=POS, y=7.5, label = format(mean_grate, digits = 2), col = as.factor(induced)), data = . %>% group_by(condition, induced) %>% summarise(mean_grate = mean(cell_grate, na.rm = T), POS = ifelse(induced, 1.25, 0.5)))+
+  geom_text(aes(x=POS, y=5, label = format(mean_grate, digits = 2), col = as.factor(induced)), data = . %>% group_by(condition, induced) %>% summarise(mean_grate = mean(cell_grate, na.rm = T), POS = ifelse(unique(induced), 1.25, 0.5)))+
+  # geom_text(aes(x=1, y=5, label =paste0("Proportion induced : ", format(prop_induced, digits = 3))), data = . %>% group_by(condition) %>% filter(date == first(date)) %>% distinct(condition, prop_induced) )+
+  # geom_text(aes(x=1, y=4, label =paste0("Proportion induced : ", format(prop_induced, digits = 3))), data = . %>% group_by(condition) %>% filter(date != first(date)) %>% distinct(condition, prop_induced) )+
+  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(0, 7.5))+
+  scale_colour_manual(name = "subpopulation",
+                      values = RColorBrewer::brewer.pal(5,"Set1")[c(5,2)],
+                      breaks = c(1, 0),
+                      labels = c("Induced", "Uninduced") 
+  )+
+  scale_linewidth_continuous(range=c(0.05, 1), guide='none') +
+  labs(x="Growth rate (dbl/h)")+
+  NULL
+
+```
+
+The picture looks very similar to what we previously computed on full cell cycle growth rates
+
+# Distibution of concentration and production rates
+
+To be able to define the switches we want to define thresholds in terms of concentration and volumic production rates, that separate induced from non induced cells.
+
+## Distribution of concentration induced vs non induced 
+
+```{r}
+
+myframes_realtrace %>%
+  mutate(induced = gfp_nb > 250,
+         log_c_gfp = log(c_gfp)) %>% 
+  mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+  filter(condition %in% c("lac002", "lac002_glu002", "lac002_glu32uM", "lac002_glu64uM")) %>% 
+  ggplot()+
+  geom_freqpoly(aes(log_c_gfp, ..density.., col = condition), binwidth = 0.1)+
+  geom_vline(xintercept = 5, lty = "dashed", alpha = .5)+
+  geom_vline(xintercept = 6, lty = "dashed", alpha = .5)+
+  labs(x="Log Concentration")+
+  coord_cartesian(xlim = c(0, 9))+
+  NULL
+
+```
+
+It looks like the concentration separating non induced from induced lies between exp(5) (~150 gfp/µm) and exp(6) (~400 gfp/µm). Setting the threshold at exp(5.5) (~250 gfp/um) therefore sounds sane, and corresponds to the threshold used this far.
+
+How are the distributions of concentration for induced cells as a function of the glucose concentration ? 
+```{r}
+
+myframes_realtrace %>%
+  mutate(induced = gfp_nb > 250,
+         log_c_gfp = log(c_gfp)) %>%
+  filter(induced) %>% 
+  mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+  # filter(condition %in% c("lac002", "lac002_glu002", "lac002_glu32uM", "lac002_glu64uM")) %>% 
+  ggplot()+
+  # stat_ecdf(aes(log_c_gfp, col = condition))+
+  stat_ecdf(aes(c_gfp, col = condition))+
+  labs(x="Log Concentration")+
+  ggplot2::scale_color_discrete()+
+  # coord_cartesian(xlim = c(0, 9))+
+  NULL
+
+```
+
+
+## Distribution of production induced vs non induced 
+
+```{r}
+
+myframes_realtrace %>%# filter(is.na(date)) %>% View
+  mutate(induced = gfp_nb > 250,
+         log_q_gfp = log(q_gfp)) %>% 
+  mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+  filter(condition %in% c("lac002", "lac002_glu002", "lac002_glu32uM", "lac002_glu64uM")) %>% 
+  ggplot()+
+  geom_freqpoly(aes(log_q_gfp, ..density.., col = condition), binwidth = 0.1)+
+   geom_vline(xintercept = 5, lty = "dashed", alpha = .5)+
+  geom_vline(xintercept = 6, lty = "dashed", alpha = .5)+
+  labs(x="Log Volumic Production ")+
+  coord_cartesian(xlim = c(0, 9))+
+  NULL
+
+```
+
+Similarly, the production separating the uninduced from the induced state lies between exp(5) (~150 gfp/h/µm) and exp(6) (~400 gfp/h/µm)
+
+
+How are the distributions of production for induced cells as a function of the glucose concentration ? 
+```{r}
+
+myframes_realtrace %>%
+  mutate(induced = gfp_nb > 250,
+         log_c_gfp = log(c_gfp)) %>%
+  filter(induced) %>% 
+  mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+  # filter(condition %in% c("lac002", "lac002_glu002", "lac002_glu32uM", "lac002_glu64uM")) %>% 
+  ggplot()+
+  # stat_ecdf(aes(log_c_gfp, col = condition))+
+  stat_ecdf(aes(q_gfp, col = condition))+
+  labs(x="Volumic production")+
+  ggplot2::scale_color_discrete()+
+  coord_cartesian(xlim = c(-100, 5000))+
+  NULL
+
+```
+
+# Defining real switches
+
+## Switching traces 
+
+We observe that, in conditions where the growth rate achieved on lactose and on glucose are the same, cells can switch on and off during the experiments, while in other conditions, cells only switch on at the beginning of the switch (here only mother cells are shown) : 
+
+```{r}
+
+  myframes_realtrace %>%
+    # filter(condition %in% c( "lac002_glu64uM")) %>%
+    ungroup() %>%
+    mutate(
+      log_q_gfp = log(q_gfp),
+      log_c_gfp = log(c_gfp),
+      induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+      induced_c = ifelse( is.na(induced_c), F, induced_c),
+      induced_q = log_q_gfp > 5.5, #Threshold is set at 5.5
+      induced_q = ifelse( is.na(induced_q), F, induced_q),
+    ) %>%
+    filter(!(is.na(log_c_gfp) | is.na(log_q_gfp))) %>% 
+    mutate(transition = case_when(
+      (!induced_q & induced_c) ~ "going_down", 
+      (induced_q & !induced_c) ~ "going_up",
+      (!induced_q & !induced_c) ~ "down", 
+      (induced_q & induced_c) ~ "up"),
+      Conc_lev = ifelse(!induced_c, "Low C", "High C")
+    ) %>%
+    group_by(condition, transition, time_sec) %>%
+    mutate(
+      mean_concentration = mean(c_gfp+100, na.rm = T),
+      mean_log_concentration = mean(log_c_gfp, na.rm = T),
+      sd_concentration = sd(c_gfp+100, na.rm = T),
+      sd_log_concentration = sd(log_c_gfp, na.rm = T),
+    ) %>% 
+    mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+    ggplot()+
+    facet_wrap(~condition, labeller = as_labeller(condition_names))+
+    geom_ribbon(aes(time_sec, ymin = YMIN, ymax = mean_concentration+sd_concentration, group = transition, fill = transition), alpha = .2, 
+                data = . %>% 
+                  filter(transition %in% c("up", "down")) %>% 
+                  mutate(YMIN = max(0, mean_concentration-sd_concentration))
+                  )+
+    geom_line(aes(time_sec, mean_concentration, group = transition), lty = "dashed", data = .  %>% 
+                filter(transition %in% c("up", "down")))+
+    geom_line(aes(time_sec, c_gfp+100, group = gl_id, col = transition),
+              data = . %>% 
+                group_by(cell) %>% 
+                filter(n() > 5, b_rank <1) %>% 
+                group_by(condition, gl_id) %>%
+                # filter(between(time_sec, 6*3600, 18*3600)) %>% 
+                filter(any(transition %in% c("going_up","going_down"))) %>% 
+                nest() %>%
+                group_by(condition) %>%
+                sample_n(min(10, n())) %>%
+                unnest(c(data)) #%>% 
+    )+
+    geom_hline(lty = "dotted", yintercept =  exp(5.5)+100)+
+    scale_color_manual(
+      name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         # values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         values =  c("#0072B2",  "#009E73", "#D55E00", (RColorBrewer::brewer.pal(8, "Dark2")[c(6)]))
+         )+
+   scale_fill_manual(
+         name = NULL,
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         )+
+   scale_alpha_manual(
+         name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         values =  c(0.4,  1, 1, 0.4)
+         )+
+    scale_y_log10()+
+    labs(y="Concentration (FP/µm)+100")+
+    guides(
+      col = "none",
+      fill = "none",
+      alpha = "none")+
+    scale_x_hours(10)+
+    # coord_cartesian(xlim = c(6,18)*3600)+
+    NULL
+
+```
+
+Let's zoom on the 64µM condition :
+
+```{r}
+
+(myplots[['sugarmix_singlecell_traces']] <- function(.seed = 12) {
+  
+  set.seed(.seed)
+
+  myframes_realtrace %>%
+    filter(!is.na(fluo_ampl_ch_1)) %>% 
+    filter(condition %in% c( "lac002_glu64uM")) %>% 
+    ungroup() %>%
+    # mutate(q_gfp = ifelse(q_gfp <= 1, 1, q_gfp),
+    #        c_gfp = ifelse(c_gfp <= 1, 1, c_gfp)) %>%
+    mutate(
+      log_q_gfp = log(q_gfp),
+      log_c_gfp = log(c_gfp),
+      induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+      induced_c = ifelse( is.na(induced_c), F, induced_c),
+      induced_q = log_q_gfp > 5.5, #Threshold is set at 5.5
+      induced_q = ifelse( is.na(induced_q), F, induced_q),
+    ) %>%
+    filter(!(is.na(log_c_gfp) | is.na(log_q_gfp))) %>% 
+    mutate(transition = case_when(
+      (!induced_q & induced_c) ~ "going_down", 
+      (induced_q & !induced_c) ~ "going_up",
+      (!induced_q & !induced_c) ~ "down", 
+      (induced_q & induced_c) ~ "up"),
+      Conc_lev = ifelse(!induced_c, "Low C", "High C")
+    ) %>%
+    group_by(condition, transition, time_sec) %>%
+    mutate(
+      # mean_concentration = mean(c_gfp, na.rm = T),
+      mean_concentration = mean(c_gfp+100, na.rm = T),
+      mean_log_concentration = mean(log_c_gfp, na.rm = T),
+      # sd_concentration = sd(c_gfp, na.rm = T),
+      sd_concentration = sd(c_gfp+100, na.rm = T),
+      sd_log_concentration = sd(log_c_gfp, na.rm = T),
+    ) %>% 
+    ggplot()+
+    # facet_wrap(~condition, labeller = as_labeller(condition_names))+
+    # geom_ribbon(aes(time_sec, ymin = mean_log_concentration-sd_log_concentration, ymax = mean_log_concentration+sd_log_concentration, group = transition), fill = "gray", alpha = .3, data = . %>% filter(transition %in% c("up", "down")))+
+    geom_ribbon(aes(time_sec, ymin = YMIN, ymax = mean_concentration+sd_concentration, group = transition, fill = transition), alpha = .2, 
+                data = . %>% 
+                  filter(transition %in% c("up", "down")) %>% 
+                  mutate(YMIN = max(0, mean_concentration-sd_concentration))
+                  )+
+    # geom_line(aes(time_sec, mean_log_concentration, group = transition), lty = "dashed", data = .  %>% 
+    geom_line(aes(time_sec, mean_concentration, group = transition), lty = "dashed", data = .  %>% 
+                filter(transition %in% c("up", "down")))+
+    geom_line(aes(time_sec, c_gfp+100, group = gl_id, col = transition),
+    # geom_line(aes(time_sec, c_gfp+100, group = cell, col = transition),
+              data = . %>% 
+                group_by(cell) %>% 
+                filter(b_rank <1) %>%
+                # filter(n() > 5) %>% 
+                group_by(condition, gl_id) %>%
+                filter(between(time_sec, 6*3600, 18*3600)) %>% 
+                filter(any(transition %in% c("going_up","going_down"))) %>% 
+                nest() %>%
+                group_by(condition) %>%
+                # (function(.df){browser() ; set.seed(.seed); return(.df)}) %>% 
+                sample_n(10) %>%
+                unnest(c(data)) #%>% 
+    )+
+    geom_hline(lty = "dotted", yintercept =  exp(5.5)+100)+
+    scale_x_hours(4)+
+    scale_color_manual(
+      name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         # values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         values =  c("#0072B2",  "#009E73", "#D55E00", (RColorBrewer::brewer.pal(8, "Dark2")[c(6)]))
+         )+
+   scale_fill_manual(
+         name = NULL,
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         )+
+   scale_alpha_manual(
+         name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         values =  c(0.4,  1, 1, 0.4)
+         )+
+    scale_y_log10()+
+    # labs(y="Concentration\n(FP/µm)+100")+
+    labs(y="[LacZ-GFP] (FP/µm)+100         ")+
+    guides(
+      # col = guide_legend(order=1),
+      # fill = guide_legend(order=2),
+      col = "none",
+      fill = "none",
+      alpha = "none")+
+    # theme(axis.title.y = element_text(hjust = 0))+
+    coord_cartesian(xlim = c(6,18)*3600)+
+    NULL
+  })() 
+
+```
+
+
+```{r}
+
+(myplots[['sugarmix_singlecell_traces']] <- ((function(.seed = 12) {
+  
+  set.seed(.seed)
+
+  .df <- myframes_realtrace %>%
+    filter(!is.na(fluo_ampl_ch_1)) %>% 
+    filter(condition %in% c( "lac002_glu64uM")) %>% 
+    ungroup() %>%
+    # mutate(q_gfp = ifelse(q_gfp <= 1, 1, q_gfp),
+    #        c_gfp = ifelse(c_gfp <= 1, 1, c_gfp)) %>%
+    mutate(
+      log_q_gfp = log(q_gfp),
+      log_c_gfp = log(c_gfp),
+      induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+      induced_c = ifelse( is.na(induced_c), F, induced_c),
+      induced_q = log_q_gfp > 5.5, #Threshold is set at 5.5
+      induced_q = ifelse( is.na(induced_q), F, induced_q),
+    ) %>%
+    filter(!(is.na(log_c_gfp) | is.na(log_q_gfp))) %>% 
+    mutate(transition = case_when(
+      (!induced_q & induced_c) ~ "going_down", 
+      (induced_q & !induced_c) ~ "going_up",
+      (!induced_q & !induced_c) ~ "down", 
+      (induced_q & induced_c) ~ "up"),
+      Conc_lev = ifelse(!induced_c, "Low C", "High C")
+    ) %>%
+    group_by(condition, transition, time_sec) %>%
+    mutate(
+      # mean_concentration = mean(c_gfp, na.rm = T),
+      mean_concentration = mean(c_gfp+100, na.rm = T),
+      mean_log_concentration = mean(log_c_gfp, na.rm = T),
+      # sd_concentration = sd(c_gfp, na.rm = T),
+      sd_concentration = sd(c_gfp+100, na.rm = T),
+      sd_log_concentration = sd(log_c_gfp, na.rm = T),
+    ) 
+  
+  .df_traces <- .df %>% 
+    group_by(cell) %>% 
+                filter(b_rank <1) %>%
+                # filter(n() > 5) %>% 
+                group_by(condition, gl_id) %>%
+                filter(between(time_sec, 6*3600, 18*3600)) %>% 
+                filter(any(transition %in% c("going_up","going_down"))) %>% 
+                nest() %>%
+                group_by(condition) %>%
+                # (function(.df){browser() ; set.seed(.seed); return(.df)}) %>% 
+                sample_n(10) %>%
+                unnest(c(data))
+    
+    ggplot(.df)+
+    # facet_wrap(~condition, labeller = as_labeller(condition_names))+
+    # geom_ribbon(aes(time_sec, ymin = mean_log_concentration-sd_log_concentration, ymax = mean_log_concentration+sd_log_concentration, group = transition), fill = "gray", alpha = .3, data = . %>% filter(transition %in% c("up", "down")))+
+    geom_ribbon(aes(time_sec, ymin = YMIN, ymax = mean_concentration+sd_concentration, group = transition, fill = transition), alpha = .2, 
+                data = . %>% 
+                  filter(transition %in% c("up", "down")) %>% 
+                  mutate(YMIN = max(0, mean_concentration-sd_concentration))
+                  )+
+    # geom_line(aes(time_sec, mean_log_concentration, group = transition), lty = "dashed", data = .  %>% 
+    geom_line(aes(time_sec, mean_concentration, group = transition), lty = "dashed", data = .  %>% 
+                filter(transition %in% c("up", "down")))+
+    geom_line(aes(time_sec, c_gfp+100, group = gl_id, col = transition),
+    # geom_line(aes(time_sec, c_gfp+100, group = cell, col = transition),
+              data = .df_traces    )+
+    geom_hline(lty = "dotted", yintercept =  exp(5.5)+100)+
+    scale_x_hours(4)+
+    scale_color_manual(
+      name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         # values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         values =  c("#0072B2",  "#009E73", "#D55E00", (RColorBrewer::brewer.pal(8, "Dark2")[c(6)]))
+         )+
+   scale_fill_manual(
+         name = NULL,
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         )+
+   scale_alpha_manual(
+         name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         values =  c(0.4,  1, 1, 0.4)
+         )+
+    scale_y_log10()+
+    # labs(y="Concentration\n(FP/µm)+100")+
+    labs(y="[LacZ-GFP] (FP/µm)+100         ")+
+    guides(
+      # col = guide_legend(order=1),
+      # fill = guide_legend(order=2),
+      col = "none",
+      fill = "none",
+      alpha = "none")+
+    # theme(axis.title.y = element_text(hjust = 0))+
+    coord_cartesian(xlim = c(6,18)*3600)+
+    NULL
+  })()))
+
+```
+
+
+
+## Production VS concentration plots
+
+We want to call a cell switching based on its trajectory on a concentration-vs-production plot : long escapes leading to going from high production high concentration to low production low concentration, or the other way around, should be called switches. 
+
+The cells having a "real" switch should be a sub-group of the cells that go out in the region of  log_c > 5.5 and log_q < 5.5 or the region log_c < 5.5 & log_q > 5.5.
+
+
+```{r}
+
+
+(myplots[['sugarmix_singlecell_phasediagram']] <- (
+ggExtra::ggMarginal(groupColour=T, myframes_realtrace %>% 
+    filter(condition %in%  c("lac002", "lac002_glu002")) %>% 
+  ungroup() %>% 
+  filter(!is.na(mean_l)) %>% 
+  mutate(q_gfp = ifelse(q_gfp <= 1, 1, q_gfp),
+         c_gfp = ifelse(c_gfp <= 1, 1, c_gfp)) %>% 
+  mutate(
+    log_q_gfp = log(q_gfp),
+    log_c_gfp = log(c_gfp),
+    induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+    induced_q = log_q_gfp > 5.5 #Threshold is set at 5.5
+  ) %>% 
+  filter(log_c_gfp > 0, log_q_gfp >0) %>% 
+    ggplot()+
+    geom_point(aes(log_q_gfp, log_c_gfp, color = condition), alpha=0)+
+    geom_rect(aes(xmin = XMIN, xmax = XMAX, ymin = YMIN, ymax = YMAX, fill = transition),
+              data = tibble(transition = c("down", "going_down", "going_up", "up"),
+                            XMIN = c(-Inf, 5.5, -Inf, 5.5),
+                            XMAX = c(5.5, Inf, 5.5, Inf),
+                            YMIN = c(-Inf, -Inf, 5.5, 5.5),
+                            YMAX = c(5.5, 5.5, Inf, Inf))
+              
+    )+
+    geom_text(aes(x = X, y = Y, label = LABEL),
+              data = tibble(transition = c("down", "going_down", "going_up", "up"),
+                            X = c(2.5, 7.5, 2.5, 7.5),
+                            Y = c(2.5, 2.5, 7.5, 7.5),
+                            # LABEL = c("Uninduced", "Low prod.\n high c", "High prod.\n low c", "Induced"))
+                            LABEL = c("Uninduced", "", "", "Induced"))
+              
+    )+
+    geom_vline(xintercept = 5.5)+
+    geom_hline(yintercept = 5.5)+
+    scale_color_manual(
+      name = "",
+      breaks =  c("lac002", "lac002_glu002"),
+      values =  c(RColorBrewer::brewer.pal(8, "Dark2")[c(6)], RColorBrewer::brewer.pal(8, "Set1")[c(2)])
+    )+
+    guides(fill = "none",
+           col = "none")+
+    expand_limits(x=log(1e4), y=log(1e4)) +
+    scale_x_continuous(
+       breaks = c(0, log(1e2), log(1e4)),
+      labels = c(1, 100, 1e4)
+    )+
+    scale_y_continuous(
+      breaks = c(0, log(1e2), log(1e4)),
+      labels = c(1, 100, 1e4)
+      )+
+    # labs(x = "[LacZ-GFP]", y="Volumic LacZ-GFP\nproduction")
+    labs(x = "[LacZ-GFP] (FP/µm)", y="Volumic LacZ-GFP\nproduction (FP/µm/h)")
+  
+)
+
+)
+
+)
+
+```
+
+
+
+Let's see what it looks like if we naively plot this for all cells in the transitions area : 
+
+```{r}
+
+myframes_realtrace %>% 
+  ungroup() %>% 
+  filter(condition %in% c("lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM")) %>% #We do this only for condition that are susceptible to have meaningfull switches
+  mutate(
+    log_q_gfp = log(q_gfp),
+    log_c_gfp = log(c_gfp),
+    induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+    induced_q = log_q_gfp > 5.5 #Threshold is set at 5.5
+  ) %>% 
+  filter(!(is.na(log_c_gfp) | is.na(log_q_gfp))) %>% 
+  group_by(cell, condition) %>% 
+  mutate(
+    potential_off = any(!induced_q & induced_c),
+    potential_on = any(induced_q & !induced_c)) %>% 
+  filter(potential_off | potential_on, n() > 5) %>% #We filter cells that are present at least some time in the transition area of the concentration-vs-production plot
+  group_by(condition, cell) %>% 
+  nest() %>% 
+  group_by(condition) %>% 
+  sample_n(10, seed = runif(1)) %>% 
+  unnest() %>% 
+  group_by(cell) %>% 
+  arrange(time_sec) %>% 
+  ggplot() +
+  facet_wrap(~condition, scales = "free", labeller = as_labeller(condition_names)) + 
+  geom_path(aes(c_gfp, q_gfp, group = cell, col = ccc(cell)))+
+  geom_hline(yintercept = exp(5.5), col = "red")+
+  geom_vline(xintercept = exp(5.5), col = "red")+
+  scale_color_manual(
+  values = c(RColorBrewer::brewer.pal(8, "Dark2"), RColorBrewer::brewer.pal(3, "Set1")),
+  breaks = seq(10)-1
+  )+
+  guides(col = "none")+
+  labs(x = "Concentration (fp/µm)", y = "Volumic production rate (fp/µm/h)")+
+  NULL
+
+```
+
+Taking only cells in the transitions area is not enough because most switches take more time than a single cell cycles, we therefore need to aggregate cell cycles
+
+### Switching lineage
+
+We first need to create a dataset containing the lineages that are switching. We allow the traces to be expanded 1h around the times of the switch (in the high c - high q or low c - low q area). 
+
+```{r, eval=TRUE}
+
+
+time_threshold = 0.5*3600 #We allow this time before and after the transition period to belong to the switching cell traces
+
+
+myframes_realtrace_switches <- 
+  myframes_realtrace %>% 
+  ungroup() %>% 
+  filter(!(is.na(mean_l) | is.na(q_gfp) | is.na(c_gfp))) %>% 
+  mutate(q_gfp = ifelse(q_gfp <= 1, 1, q_gfp),
+         c_gfp = ifelse(c_gfp <= 1, 1, c_gfp)) %>% 
+  mutate(
+    log_q_gfp = log(q_gfp),
+    log_c_gfp = log(c_gfp),
+    induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+    induced_q = log_q_gfp > 5.5 #Threshold is set at 5.5
+  ) %>% 
+    group_by(condition) %>% 
+  (function(.df){
+    # browser()
+    
+    .df_daughters <- .df %>% 
+      select(-cell) %>% 
+      rename(cell = parent_id) %>% #We replace cell identifier by it's parents identifier
+      group_by(condition, cell, time_sec) %>% #We group daughter cells together at everytime points
+      summarise( 
+        mean_l = mean(mean_l, na.rm =T), #Average growth rate  
+        mean_x = log(sum(exp(mean_x), na.rm =T)), #Sum cell length
+        q_gfp = mean(q_gfp, na.rm =T), #Average q
+        c_gfp = mean(c_gfp, na.rm =T), #Average c
+        q_gfp = ifelse(q_gfp <= 1, 1, q_gfp),
+        c_gfp = ifelse(c_gfp <= 1, 1, c_gfp),
+        log_q_gfp = log(q_gfp),
+        log_c_gfp = log(c_gfp),
+        induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+        induced_q = log_q_gfp > 5.5, #Threshold is set at 5.5
+        origin_cell = "daugthers" #Identifier to track where the data came from
+                )
+      
+    
+
+    .df_final <- 
+    .df %>% 
+      group_by(cell, parent_id) %>% 
+      mutate(origin_cell = "central") %>% #Define central cell
+      nest() %>% 
+      left_join(.df %>% #We left join, by parent_id the dataframe to a dataframe containing cells whose parent_id is replace by cell ID, such that every cells gets leftjoin with it's parent cell) 
+          group_by(cell, parent_id) %>%
+          mutate(origin_cell = "parent") %>%  #Define origin of the cells
+          nest() %>% 
+          select(-parent_id) %>% 
+          mutate(parent_id=cell), #parent_id take the value of the cell
+          by = c("parent_id")
+            ) %>% 
+      mutate(cell = cell.x, #cell variable gets duplicated, the "real" one is cell.x (central cell)
+             cell.x = NULL,
+             cell.y = NULL) %>% 
+      gather("data", "frame", data.x, data.y) %>% #We put the two list-column in one column
+      unnest(c(frame)) %>% 
+      select(condition, cell, time_sec, mean_l, mean_x, c_gfp, q_gfp, log_q_gfp, log_c_gfp, induced_c, induced_q, origin_cell) %>% #, switch_on_q, switch_off_q, n_switch_on, n_switch_off) %>% 
+      rbind(.df_daughters) #We bind by rows the dataframe containing daughter cells, whose "cell" column correspond to our central cells.
+  
+    
+      
+    .df_final #Call .df_final to get it exported
+    
+    
+    }) %>% 
+  filter(!is.na(induced_q) & !is.na(induced_c)) %>% 
+  group_by(cell) %>%
+  arrange(time_sec) %>% 
+  mutate(
+    is_sometimes_off = any(!induced_c & !induced_q),
+    is_sometimes_on = any(induced_c & induced_q),
+    is_sometimes_going_up = is_sometimes_on & is_sometimes_off & (first(time_sec[log_q_gfp > 5.5 & log_c_gfp < 5.5])<first(time_sec[log_q_gfp > 5.5 & log_c_gfp > 5.5])) & (first(time_sec[log_q_gfp < 5.5 & log_c_gfp < 5.5])<first(time_sec[log_q_gfp > 5.5 & log_c_gfp > 5.5])),
+    is_sometimes_going_up = ifelse(is.na(is_sometimes_going_up), F, is_sometimes_going_up), 
+    is_sometimes_going_down = is_sometimes_on & is_sometimes_off & ((first(time_sec[log_q_gfp < 5.5 & log_c_gfp > 5.5])<first(time_sec[log_q_gfp < 5.5 & log_c_gfp < 5.5])) | (last(time_sec[log_q_gfp > 5.5 & log_c_gfp > 5.5])<last(time_sec[log_q_gfp < 5.5 & log_c_gfp > 5.5]))),
+    # is_sometimes_going_down = is_sometimes_on & is_sometimes_off & ((first(time_sec[log_q_gfp < 5.5 & log_c_gfp > 5.5])<first(time_sec[log_q_gfp < 5.5 & log_c_gfp < 5.5])) | (last(time_sec[log_q_gfp > 5.5 & log_c_gfp > 5.5])<last(time_sec[log_q_gfp < 5.5 & log_c_gfp > 5.5]))) & (first(time_sec[log_q_gfp > 5.5 & log_c_gfp > 5.5])<first(time_sec[log_q_gfp < 5.5 & log_c_gfp < 5.5])),
+    is_sometimes_going_down = ifelse(is.na(is_sometimes_going_down), F, is_sometimes_going_down),
+    going_up = is_sometimes_going_up & between(time_sec, first(time_sec[log_q_gfp > 5.5 & log_c_gfp < 5.5])-time_threshold, first(time_sec[log_q_gfp > 5.5 & log_c_gfp > 5.5])+time_threshold),
+    going_up = ifelse(is.na(going_up), F, going_up), 
+    going_down = is_sometimes_going_down & between(time_sec, first(time_sec[log_q_gfp < 5.5 & log_c_gfp > 5.5])-time_threshold, first(time_sec[log_q_gfp < 5.5 & log_c_gfp < 5.5])+time_threshold),
+    going_down = ifelse(is.na(going_down), F, going_down),
+    going_up = ifelse(going_down & going_up & log_q_gfp < 5.5 & log_c_gfp > 5.5, F, going_up), # The aim is, in case of overlap, to give priority to the switche corresponding to the real transition 
+    going_down = ifelse(going_down & going_up & log_q_gfp > 5.5 & log_c_gfp < 5.5, F, going_down)
+  ) %>% 
+  filter(is_sometimes_on & is_sometimes_off)
+
+```
+
+
+Switches off are defined as any cell traces that start on the top right corner of the c-vs-q parameter spaces, and end in the bottom left corner.  
+
+```{r}
+
+myframes_realtrace_switches %>%
+  filter(condition %in% c("lac002_glu32uM", "lac002_glu64uM")) %>% #filter(going_down) #filter(going_up & going_down)
+  mutate(switch = case_when(going_up ~ "ON",
+                            going_down ~ "OFF",
+                            !going_up & !going_down ~ "NO_SWITCH")) %>%
+  group_by(cell) %>% 
+  filter(any(switch == "OFF")) %>%
+   group_by(condition, cell) %>%
+  arrange(time_sec) %>% 
+  nest() %>%
+  group_by(condition) %>%
+  sample_n(1) %>%
+  unnest(c(data)) %>%
+  ggplot() +
+  facet_wrap(~condition, scales = "free", labeller = as_labeller(condition_names)) + 
+  geom_path(aes(log_c_gfp, log_q_gfp, group = cell))+
+  geom_point(aes(log_c_gfp, log_q_gfp, col = switch))+
+  # geom_point(aes(log_c_gfp, log_q_gfp, col = mean_l/log(2)), data = . %>% filter(mean_l > 0))+
+  geom_hline(yintercept = 5.5, col = "red")+
+  geom_vline(xintercept = 5.5, col = "red")+
+  labs(x = "log(c)", y="log(q)")+
+  # scale_color_viridis_c()+
+  NULL
+ 
+```
+
+Similarly, switches on are defined as any cell traces that start on the bottom left corner of the c-vs-q parameter spaces, and end in the top right corner.  
+
+```{r}
+
+myframes_realtrace_switches %>%
+  filter(condition %in% c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+  mutate(switch = case_when(going_up ~ "ON",
+                            going_down ~ "OFF",
+                            !going_up & !going_down ~ "NO_SWITCH")) %>%
+  group_by(cell) %>% 
+  filter(any(switch == "ON")) %>%
+   group_by(condition, cell) %>%
+  arrange(time_sec) %>% 
+  nest() %>%
+  group_by(condition) %>%
+  sample_n(1) %>%
+  unnest() %>%
+  ggplot() +
+  facet_wrap(~condition, scales = "free", labeller = as_labeller(condition_names)) + 
+  geom_path(aes(log_c_gfp, log_q_gfp, group = cell))+
+  geom_point(aes(log_c_gfp, log_q_gfp, col = switch))+
+  geom_hline(yintercept = 5.5, col = "red")+
+  geom_vline(xintercept = 5.5, col = "red")+
+  labs(x = "log(c)", y="log(q)")+
+  NULL
+ 
+```
+
+The switches are coherent with what we try to achieve. We can look, for cells at steady state (after 5h), in various conditions, what fraction of cells are going up or down in different conditions 
+
+```{r}
+
+myframes_realtrace %>% 
+  filter(time_sec > 5*3600) %>% 
+  ungroup() %>% 
+  filter(!(is.na(mean_l) | is.na(q_gfp) | is.na(c_gfp))) %>% 
+  left_join(myframes_realtrace_switches %>% select(cell, time_sec, going_up, going_down)) %>% 
+  mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+  group_by(condition) %>% 
+  summarise(
+    n_cells_going_up = length(unique(cell[going_up])), 
+    n_cells_going_down = length(unique(cell[going_down])), 
+    Fraction_cells_going_up = n_cells_going_up/length(unique(cell)),
+    Fraction_cells_going_down = n_cells_going_down/length(unique(cell)),
+    Fraction_obs_going_up = sum(going_up, na.rm= T)/n(),
+    Fraction_obs_going_down = sum(going_down, na.rm= T)/n(),
+            )
+```
+
+# Average growth rate of switching cells
+
+We can now compute the average growth rate before switching on or off in all conditions, in order to see whether we observe a certain pattern. 
+
+```{r, fig.height=20}
+
+myframes_realtrace_switches %>% 
+  group_by(condition, cell) %>% 
+  mutate(switch = case_when(going_up ~ "ON",
+                            going_down ~ "OFF",
+                            !going_up & !going_down ~ "NO_SWITCH")) %>%
+  filter(switch != "NO_SWITCH") %>%
+  group_by(condition, cell, switch) %>% 
+  arrange(time_sec) %>%
+  mutate(time_switch = ifelse(going_up, first(time_sec[log(q_gfp) > 5.5]), first(time_sec[log(q_gfp) < 5.5]))) %>% 
+  mutate(time_sec = time_sec - time_switch) %>% 
+  group_by(condition, time_sec, switch) %>% 
+  summarise(
+    sqrt_n = sqrt(n()), 
+    mean_growth_rate = mean(mean_l/log(2), na.rm = T),
+    sd_growth_rate = sd(mean_l/log(2), na.rm = T),
+    sd_err_growth_rate = sd_growth_rate/sqrt_n,
+    mean_production_rate = mean(q_gfp, na.rm = T),
+    sd_production_rate = sd(q_gfp, na.rm = T),
+    sd_err_production_rate = sd_production_rate/sqrt_n,
+  ) %>% 
+  # pivot_longer(cols = c("sd_growth_rate", "sd_production_rate", "mean_growth_rate", "mean_production_rate"), names_to = "var", values_to = "val") %>%
+  pivot_longer(cols = c("sd_err_growth_rate", "sd_err_production_rate", "mean_growth_rate", "mean_production_rate"), names_to = "var", values_to = "val") %>%
+  mutate(Rate = str_extract(var, "[a-z]*_rate"),
+         var = str_extract(var, "[a-z]*")) %>% 
+  pivot_wider(names_from = var, values_from = val) %>% 
+  ungroup %>% 
+  mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+  filter(condition != "lac002_glu002") %>% 
+  ggplot()+
+  facet_wrap(~condition+Rate, scales = "free", ncol = 2,  labeller = as_labeller(condition_names), switch = "y")+
+  geom_ribbon(aes(time_sec, ymin=mean-sd, ymax=mean+sd, fill = switch), alpha = .2)+
+  geom_line(aes(time_sec, mean, col = switch))+
+  geom_hline(aes(yintercept = mean, lty = induced_c),
+             data = myframes_realtrace %>%
+               filter(time_sec > 5 * 3600,
+                      ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_sec < 14 * 3600) ) %>%
+               ungroup() %>%
+               mutate(q_gfp = ifelse(q_gfp <= 0, 1, q_gfp),
+                      c_gfp = ifelse(c_gfp <= 0, 1, c_gfp)) %>%
+               mutate(
+                 log_c_gfp = log(c_gfp),
+                 induced_c = log_c_gfp > 5.5
+               ) %>%
+               filter(!is.na(induced_c)) %>%
+               # group_by(cell, condition, induced_c) %>%
+               group_by(condition, induced_c) %>%
+               summarise(
+                 mean_growth_rate = mean(mean_l/log(2), na.rm = T),
+                 mean_production_rate = mean(q_gfp, na.rm = T),
+               ) %>%
+               # group_by(condition, induced_c) %>%
+               # summarise(
+                 # mean_growth_rate = mean(mean_growth_rate),
+                 # mean_production_rate = mean(mean_production_rate),
+               # ) %>%
+               pivot_longer(cols = c("mean_growth_rate", "mean_production_rate"), names_to = "var", values_to = "val") %>%
+               mutate(Rate = str_extract(var, "[a-z]*_rate"),
+                      var = str_extract(var, "[a-z]*")) %>%
+               pivot_wider(names_from = var, values_from = val) %>%
+               ungroup %>%
+               mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+               filter(condition != "lac002_glu002")
+             
+  )+
+  geom_rect(aes(xmin = -3*3600, xmax = 3*3600, ymin = mean-sd, ymax = mean+sd, group = induced_c), alpha = .2, 
+            data = myframes_realtrace %>%
+              filter(time_sec > 5 * 3600,
+                     ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_sec < 14 * 3600) ) %>% 
+              ungroup() %>% 
+              mutate(q_gfp = ifelse(q_gfp <= 0, 1, q_gfp),
+                     c_gfp = ifelse(c_gfp <= 0, 1, c_gfp)) %>% 
+              mutate(
+                log_c_gfp = log(c_gfp),
+                induced_c = log_c_gfp > 5.5
+              ) %>% 
+              filter(!is.na(induced_c)) %>% 
+              group_by(condition, induced_c) %>%
+              # group_by(cell, condition, induced_c) %>% 
+              summarise(
+                mean_growth_rate = mean(mean_l/log(2), na.rm = T),
+                mean_production_rate = mean(q_gfp, na.rm = T),
+              ) %>%
+              group_by(condition, induced_c) %>%
+              summarise(
+                sqrt_n = sqrt(n()),
+                sd_growth_rate = sd(mean_growth_rate),
+                sd_err_growth_rate = sd_growth_rate/sqrt_n,
+                mean_growth_rate = mean(mean_growth_rate),
+                sd_production_rate = sd(mean_production_rate),
+                sd_err_production_rate = sd_production_rate/sqrt_n,
+                mean_production_rate = mean(mean_production_rate),
+              ) %>%
+              
+              # pivot_longer(cols = c("sd_growth_rate", "sd_production_rate", "mean_growth_rate", "mean_production_rate"), names_to = "var", values_to = "val") %>%
+              pivot_longer(cols = c("sd_err_growth_rate", "sd_err_production_rate", "mean_growth_rate", "mean_production_rate"), names_to = "var", values_to = "val") %>%
+              mutate(Rate = str_extract(var, "[a-z]*_rate"),
+                     var = str_extract(var, "[a-z]*")) %>% 
+              filter(!is.na(var), !is.na(Rate)) %>% 
+              pivot_wider(names_from = var, values_from = val) %>% 
+              ungroup %>%
+              mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002")))  %>% 
+              filter(condition != "lac002_glu002")
+            
+  )+
+  geom_vline(xintercept = 0, col = "Gray", lty = "dotted") +
+  scale_color_manual(
+    name = "",
+    breaks = c("ON", "OFF"),
+    labels = c("ON" = "switching on", "OFF" = "switching off"),
+    values = c("#009E73" , "#D55E00")
+  )+
+  scale_fill_manual(
+    name = "",
+    breaks = c("ON", "OFF"),
+    labels = c("ON" = "switching on", "OFF" = "switching off"),
+    values = c("#009E73" , "#D55E00")
+  )+
+  scale_linetype_manual(
+    name = "",
+    breaks = c("FALSE", "TRUE"),
+    labels = c("FALSE" = "Uninduced", "TRUE" = "Induced"),
+    values = c(1,3)
+  )+
+  # ggh4x::facetted_pos_scales(y = list(scale_y_continuous(position = "left", breaks = scales::breaks_pretty(n=4), limits = c(0.65, 1.1)), scale_y_continuous(position = "left", breaks = scales::breaks_pretty(n=4), limits = c(0, 1700))))+
+  coord_cartesian(xlim = c(-0.5*3600, 0.5*3600))+
+  scale_x_hours(0.5)+
+  theme(axis.title.y = element_blank(),
+        strip.background.y = element_blank(),
+        strip.placement = "outside")+
+  NULL
+  
+```
+
+
+
+As expected, the results are hard to interpret for most conditions, but we can look at the 32µM and 64µM conditions that are more informative. Let's start by looking at the number of cells we observe per unit time in both condition and switches : 
+
+```{r}
+myframes_realtrace_switches %>% 
+  group_by(condition, cell) %>% 
+  arrange(time_sec) %>% 
+  mutate(switch = case_when(going_up ~ "ON",
+                            going_down ~ "OFF",
+                            !going_up & !going_down ~ "NO_SWITCH")) %>%
+  filter(switch != "NO_SWITCH") %>%
+  group_by(condition, cell, switch) %>% 
+  arrange(time_sec) %>%
+  mutate(time_switch = ifelse(going_up, first(time_sec[log(q_gfp) > 5.5]), first(time_sec[log(q_gfp) < 5.5]))) %>% 
+  mutate(time_sec = time_sec - time_switch) %>%
+  group_by(condition, time_sec, switch) %>% 
+  summarise(
+    n_cell = n()
+  ) %>% 
+  ungroup %>% 
+  mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>%
+  filter(condition %in% c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+  ggplot()+
+  facet_grid(.~condition,labeller = as_labeller(condition_names))+
+  geom_line(aes(time_sec, n_cell, col = switch))+
+  geom_line(aes(time_sec, n_cell, lty = switch),
+            data = myframes_realtrace %>%
+              filter(time_sec > 5 * 3600,
+              ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_sec < 14 * 3600) ) %>%
+              filter(condition %in% c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+              ungroup() %>%
+              mutate(q_gfp = ifelse(q_gfp <= 1, 1, q_gfp),
+                     c_gfp = ifelse(c_gfp <= 1, 1, c_gfp)) %>%
+              mutate(
+                log_c_gfp = log(c_gfp),
+                induced_c = log_c_gfp > 5.5,
+                switch = ifelse(induced_c, "induced", NA),
+                switch = ifelse(!induced_c, "uninduced", switch),
+                category = ifelse(induced_c, "High_c", "Low_c")
+              ) %>%
+              filter(!is.na(induced_c)) %>%
+              # group_by(condition, cell, switch) %>% 
+              group_by(condition, cell, induced_c) %>% 
+              arrange(time_sec) %>%
+              mutate(time_switch =sample(time_sec, size=1)) %>%
+              filter((time_switch %% (9*60)) == 0) %>%
+              mutate(time_sec = time_sec - time_switch) %>%
+              group_by(condition, time_sec, switch) %>% 
+              summarise(
+                n_cell = n()
+              ) 
+              # filter(between(time_sec,-0.3*3600, 0.3*3600)) %>%
+              # group_by(condition, switch, cell) %>%
+            )+
+  
+  geom_vline(xintercept = 0, col = "Gray", lty = "dotted") +
+  scale_color_manual(
+    name = "",
+    breaks = c("ON", "OFF"),
+    labels = c("ON" = "switching on", "OFF" = "switching off"),
+    values = c("#009E73" , "#D55E00")
+  )+
+   coord_cartesian(xlim = c(-0.5*3600, 0.5*3600))+
+  scale_x_hours(0.5)+
+  # scale_y_log10()+
+  labs(y = "Number of cells")+
+  NULL
+  
+```
+
+
+For comparison, the average cell growth rate of the induced and uninduced cells is plotted as horizontal lines. Note that computing the overall average growth rate yield poor results, because it overepresents slow growing cells, and we therefore use the median of mean growth rate over a cell cycle.  
+
+```{r}
+(myplots[['sugarmix_singlecell_rates']] <- (
+  myframes_realtrace_switches %>%
+    group_by(condition, cell) %>% 
+    arrange(time_sec) %>% 
+    mutate(switch = case_when(going_up ~ "ON",
+                              going_down ~ "OFF",
+                              !going_up & !going_down ~ "NO_SWITCH")) %>%
+    filter(switch != "NO_SWITCH") %>%
+    # filter(going_up) %>%
+    group_by(condition, cell, switch) %>% 
+    arrange(time_sec) %>%
+    mutate(time_switch = ifelse(going_up, first(time_sec[log(q_gfp) > 5.5]), first(time_sec[log(q_gfp) < 5.5]))) %>% 
+    mutate(time_sec = time_sec - time_switch) %>%
+    # group_by(condition, switch, cell, time_sec) %>%
+    #             nest() %>%
+    #             group_by(condition, switch, cell) %>%
+    #             sample_n(min(10, n())) %>%
+    #             unnest(c(data)) %>%
+    group_by(condition, time_sec, switch) %>% 
+    summarise(
+      sqrt_n = sqrt(n()), 
+      mean_growth_rate = mean(mean_l/log(2), na.rm = T),
+      median_growth_rate = median(mean_l/log(2), na.rm = T),
+      sd_growth_rate = sd(mean_l/log(2), na.rm = T),
+      sd_err_growth_rate = sd_growth_rate/sqrt_n,
+      mean_production_rate = mean(q_gfp, na.rm = T),
+      median_production_rate = median(q_gfp, na.rm = T),
+      sd_production_rate = sd(q_gfp, na.rm = T),
+      sd_err_production_rate = sd_production_rate/sqrt_n,
+    ) %>% 
+    # pivot_longer(cols = c("sd_growth_rate", "sd_production_rate", "mean_growth_rate", "mean_production_rate"), names_to = "var", values_to = "val") %>%
+    # pivot_longer(cols = c("sd_err_growth_rate", "sd_err_production_rate", "mean_growth_rate", "mean_production_rate"), names_to = "var", values_to = "val") %>%
+    pivot_longer(cols = c("sd_err_growth_rate", "sd_err_production_rate", "mean_growth_rate", "mean_production_rate", "median_growth_rate", "median_production_rate"), names_to = "var", values_to = "val") %>%
+    mutate(Rate = str_extract(var, "[a-z]*_rate"),
+           var = str_extract(var, "[a-z]*")) %>% 
+    pivot_wider(names_from = var, values_from = val) %>% 
+    ungroup %>% 
+    mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+    filter(condition %in% c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+    ggplot()+
+    facet_grid(Rate~condition, scales = "free", labeller = as_labeller(condition_names), switch = "y")+
+    # geom_ribbon(aes(time_sec, ymin=mean-sd, ymax=mean+sd, fill = switch), alpha = .2)+
+    # geom_ribbon(aes(time_sec, ymin=median-sd, ymax=median+sd, fill = switch), alpha = .2)+
+    # geom_line(aes(time_sec, mean, col = switch))+
+    geom_line(aes(time_sec, median, col = switch))+
+    geom_hline(aes(yintercept = mean, lty = induced_c),
+               data = myframes_realtrace %>%
+                 anti_join(myframes_realtrace_switches %>%  ungroup() %>% select(cell)) %>%
+                 filter(time_sec > 5 * 3600,
+                        ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_sec < 14 * 3600) ) %>%
+                 ungroup() %>%
+                 mutate(q_gfp = ifelse(q_gfp <= 0, 1, q_gfp),
+                        c_gfp = ifelse(c_gfp <= 0, 1, c_gfp)) %>%
+                 mutate(
+                   log_c_gfp = log(c_gfp),
+                   induced_c = log_c_gfp > 5.5
+                 ) %>%
+                 filter(!is.na(induced_c)) %>%
+                 # group_by(cell, condition, induced_c) %>%
+                 group_by(condition, induced_c) %>%
+                 # filter(between(mean_l, quantile(mean_l, 0.05), quantile(mean_l, 0.95))) %>%
+                 summarise(
+                   # mean_growth_rate = mean(mean_l/log(2), na.rm = T),
+                   mean_growth_rate = median(mean_l/log(2), na.rm = T),
+                   # mean_production_rate = mean(q_gfp, na.rm = T),
+                   mean_production_rate = median(q_gfp, na.rm = T),
+                 ) %>%
+                 # group_by(condition, induced_c) %>%
+                 # summarise(
+                 #   # mean_growth_rate = mean(mean_growth_rate),
+                 #   mean_growth_rate = median(mean_growth_rate),
+                 #   # mean_production_rate = mean(mean_production_rate),
+                 #   mean_production_rate = median(mean_production_rate),
+                 # ) %>%
+                 pivot_longer(cols = c("mean_growth_rate", "mean_production_rate"), names_to = "var", values_to = "val") %>%
+                 mutate(Rate = str_extract(var, "[a-z]*_rate"),
+                        var = str_extract(var, "[a-z]*")) %>%
+                 pivot_wider(names_from = var, values_from = val) %>%
+                 ungroup %>%
+                 mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>%
+                 filter(condition %in% c("lac002_glu32uM", "lac002_glu64uM"))
+               
+    )+
+    geom_rect(aes(xmin = -3*3600, xmax = 3*3600, ymin = mean-sd, ymax = mean+sd, group = induced_c), alpha = .2, 
+              data = myframes_realtrace %>%
+                anti_join(myframes_realtrace_switches %>%  ungroup() %>% select(cell)) %>%
+                filter(time_sec > 5 * 3600,
+                       ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_sec < 14 * 3600) ) %>% 
+                ungroup() %>% 
+                mutate(q_gfp = ifelse(q_gfp <= 0, 1, q_gfp),
+                       c_gfp = ifelse(c_gfp <= 0, 1, c_gfp)) %>% 
+                mutate(
+                  log_c_gfp = log(c_gfp),
+                  induced_c = log_c_gfp > 5.5
+                ) %>% 
+                filter(!is.na(induced_c)) %>% 
+                
+                group_by(condition, induced_c) %>% 
+                summarise(
+                  mean_growth_rate = mean(mean_l/log(2), na.rm = T),
+                  mean_production_rate = mean(q_gfp, na.rm = T),
+                ) %>%
+                group_by(condition, induced_c) %>%
+                summarise(
+                  sqrt_n = sqrt(n()),
+                  sd_growth_rate = sd(mean_growth_rate),
+                  sd_err_growth_rate = sd_growth_rate/sqrt_n,
+                  # mean_growth_rate = mean(mean_growth_rate),
+                  mean_growth_rate = median(mean_growth_rate),
+                  sd_production_rate = sd(mean_production_rate),
+                  sd_err_production_rate = sd_production_rate/sqrt_n,
+                  # mean_production_rate = mean(mean_production_rate),
+                  mean_production_rate = median(mean_production_rate),
+                ) %>%
+                
+                
+                # pivot_longer(cols = c("sd_growth_rate", "sd_production_rate", "mean_growth_rate", "mean_production_rate"), names_to = "var", values_to = "val") %>%
+                pivot_longer(cols = c("sd_err_growth_rate", "sd_err_production_rate", "mean_growth_rate", "mean_production_rate"), names_to = "var", values_to = "val") %>%
+                mutate(Rate = str_extract(var, "[a-z]*_rate"),
+                       var = str_extract(var, "[a-z]*")) %>% 
+                filter(!is.na(var), !is.na(Rate)) %>% 
+                pivot_wider(names_from = var, values_from = val) %>% 
+                ungroup %>%
+                mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>%
+                filter(condition %in% c("lac002_glu32uM", "lac002_glu64uM"))
+              
+    )+
+    geom_vline(xintercept = 0, col = "Gray", lty = "dotted") +
+    scale_color_manual(
+      name = "",
+      breaks = c("ON", "OFF"),
+      labels = c("ON" = "switching on", "OFF" = "switching off"),
+      values = c("#009E73" , "#D55E00")
+    )+
+    scale_fill_manual(
+      name = "",
+      breaks = c("ON", "OFF"),
+      labels = c("ON" = "switching on", "OFF" = "switching off"),
+      values = c("#009E73" , "#D55E00")
+    )+
+    scale_linetype_manual(
+      name = "",
+      breaks = c("FALSE", "TRUE"),
+      labels = c("FALSE" = "Uninduced", "TRUE" = "Induced"),
+      values = c(1,3)
+    )+
+    ggh4x::facetted_pos_scales(y = list(scale_y_continuous(position = "left", breaks = scales::breaks_pretty(n=3), limits = c(0.70, 1.0)), scale_y_continuous(position = "left", breaks = scales::breaks_pretty(n=3), limits = c(0, 1000))))+
+    coord_cartesian(xlim = c(-0.5*3600, 0.5*3600))+
+    # scale_x_hours(0.5)+
+    scale_x_continuous(
+      name = "time (min)",
+      breaks = c(-30, -15, 0, 15, 30)*60,
+      labels = c(-30, -15, 0, 15, 30)
+      )+
+    theme(axis.title.y = element_blank(),
+          strip.background.y = element_blank(),
+          strip.placement = "outside")+
+    NULL))
+  
+```
+Here we can appreciate that cells that will eventually switch on are growing quite a bit slower than average, while cells that will eventually switch off grow faster in average. It looks though that the mean is lower than the median, which suggest that some slow growing cells are pulling the average down.  Let's plot ecdf as a function of time to see what fraction is responsible for this effect. Note that we take a sample of similar size (~200 cells) 
+
+```{r}
+
+myframes_realtrace_switches %>% 
+  group_by(condition, cell) %>% 
+  arrange(time_sec) %>% 
+  mutate(switch = case_when(going_up ~ "ON",
+                            going_down ~ "OFF",
+                            !going_up & !going_down ~ "NO_SWITCH"),
+         category = ifelse(going_up, "Low_c", "High_c")
+         ) %>%
+  filter(switch != "NO_SWITCH") %>%
+  # filter(going_up) %>%
+  group_by(condition, cell, switch) %>% 
+  arrange(time_sec) %>%
+  mutate(time_switch = ifelse(going_up, first(time_sec[log(q_gfp) > 5.5]), first(time_sec[log(q_gfp) < 5.5]))) %>% 
+  mutate(time_sec = time_sec - time_switch) %>%
+  # group_by(condition, switch, cell, time_sec) %>%
+  #             nest() %>%
+  #             group_by(condition, switch, cell) %>%
+  #             sample_n(min(10, n())) %>%
+  #             unnest(c(data)) %>%
+  group_by(condition, time_sec, switch) %>% 
+  # filter(n()>10) %>% 
+  filter(between(time_sec,-0.3*3600, 0.3*3600)) %>% 
+  ungroup %>% 
+  mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002"))) %>% 
+  filter(condition %in% c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+  ggplot()+
+  facet_grid(time_sec~condition+category, scales = "free", labeller = as_labeller(c(condition_names, c("-1080"="-18","-540"="-9","0"="0","1080"="18","540"="9", "Low_c"= "Low conc.", "High_c"= "High conc."))))+
+  # facet_grid(time_sec~condition, scales = "free")+
+  stat_ecdf(aes(mean_l/log(2), col = switch))+
+  geom_vline(aes(xintercept = MED, col = switch),
+             data = . %>%
+               group_by(condition, category, switch, time_sec) %>%
+               summarise(MED = median(mean_l/log(2)), na.rm= T)
+  )+
+  stat_ecdf(aes(mean_l/log(2), col = switch),
+            data = myframes_realtrace %>%
+              anti_join(myframes_realtrace_switches %>%  ungroup() %>% select(cell)) %>%
+              filter(condition %in% c("lac002_glu32uM", "lac002_glu64uM")) %>%
+              filter(time_sec > 5 * 3600,
+              ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_sec < 14 * 3600) ) %>%
+              ungroup() %>%
+              mutate(q_gfp = ifelse(q_gfp <= 1, 1, q_gfp),
+                     c_gfp = ifelse(c_gfp <= 1, 1, c_gfp)) %>%
+              mutate(
+                log_c_gfp = log(c_gfp),
+                induced_c = log_c_gfp > 5.5,
+                switch = ifelse(induced_c, "induced", "uninduced"),
+                category = ifelse(induced_c, "High_c", "Low_c")
+              ) %>%
+              filter(!is.na(induced_c)) %>%
+              group_by(condition, cell, switch) %>% 
+              arrange(time_sec) %>%
+              mutate(time_switch =sample(time_sec, size=1)) %>%
+              filter((time_switch %% (9*60)) == 0) %>%  
+              mutate(time_sec = time_sec - time_switch) %>%
+              ungroup %>%
+              filter(between(time_sec,-0.3*3600, 0.3*3600)) %>%
+              group_by(condition, switch, cell) %>%
+              nest() %>%
+              group_by(condition, switch) %>%
+              sample_n(200) %>%
+              unnest() %>%
+              mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002")))
+  )+
+  geom_vline(aes(xintercept = MED, col = switch),
+             data = myframes_realtrace %>%
+               anti_join(myframes_realtrace_switches %>%  ungroup() %>% select(cell)) %>%
+               filter(condition %in% c("lac002_glu32uM", "lac002_glu64uM")) %>%
+               filter(time_sec > 5 * 3600,
+                      ! (condition %in% c("lac002_glu32uM", "lac002_glu64uM") & time_sec < 14 * 3600) ) %>%
+               ungroup() %>%
+               mutate(q_gfp = ifelse(q_gfp <= 1, 1, q_gfp),
+                      c_gfp = ifelse(c_gfp <= 1, 1, c_gfp)) %>%
+               mutate(
+                 log_c_gfp = log(c_gfp),
+                 induced_c = log_c_gfp > 5.5,
+                 switch = ifelse(induced_c, "induced", "uninduced"),
+                 category = ifelse(induced_c, "High_c", "Low_c")
+               ) %>%
+               filter(!is.na(induced_c)) %>%
+               group_by(condition, cell, switch) %>%
+               arrange(time_sec) %>%
+               mutate(time_switch =sample(time_sec, size=1)) %>%
+               filter((time_switch %% (9*60)) == 0) %>%
+               mutate(time_sec = time_sec - time_switch) %>%
+               ungroup %>%
+               filter(between(time_sec,-0.3*3600, 0.3*3600)) %>%
+               group_by(condition, switch, cell) %>%
+               nest() %>%
+               group_by(condition, switch) %>%
+               sample_n(200) %>%
+               unnest() %>%
+               group_by(condition, category, switch, time_sec) %>%
+               summarise(MED = median(mean_l/log(2)), na.rm= T) %>%
+               mutate(condition = factor(condition, levels = c("lac002", "lac002_glu2uM", "lac002_glu4uM", "lac002_glu8uM", "lac002_glu16uM", "lac002_glu32uM", "lac002_glu64uM", "lac002_glu128uM", "lac002_glu002")))
+  )+
+
+  
+  scale_color_manual(
+    name = "",
+    breaks = c("ON", "OFF", "induced",  "uninduced"),
+    labels = c("ON" = "switching on", "OFF" = "switching off", "induced"="induced", "uninduced"="uninduced"),
+    values = c("#009E73" , "#D55E00", "#F0E442",  "#0072B2")
+  )+
+  scale_fill_manual(
+    name = "",
+    breaks = c("ON", "OFF", "induced",  "uninduced"),
+    labels = c("ON" = "switching on", "OFF" = "switching off", "induced"="induced", "uninduced"="uninduced"),
+    values = c("#009E73" , "#D55E00", "#F0E442",  "#0072B2")
+  )+
+  scale_linetype_manual(
+    name = "",
+    breaks = c("FALSE", "TRUE"),
+    labels = c("FALSE" = "Uninduced", "TRUE" = "Induced"),
+    values = c(1,3)
+  )+
+  coord_cartesian(xlim = c(0.2, 1.25))+
+  theme(axis.title.y = element_blank(),
+        strip.background.y = element_blank(),
+        strip.placement = "outside")+
+  labs(x = "Growth rate (dbl/h)")+
+  NULL
+  
+```
+
+There is a clear shift of growth rate distributions towards lower growth rates for cells switching on. A shift in growth rate distribution towards higher growth rates in off switching cells is also observed, although weaker : the majority of cells switching off grow faster than the majority of cell not switching, but we also observe cells growing slower that will switch on.  
+
+# Growth rate distribution of switching cells in different area of the parameter space 
+
+We now want to look whether the distribution of growth rate of cells switching on or off is typically lower/higher than the distribution of growth rate of cells that are not switching but have similar concentrations or production rates.
+
+```{r}
+
+
+myframes_realtrace %>% 
+  anti_join(myframes_realtrace_switches) %>% 
+  ungroup() %>% 
+  filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+  filter(!is.na(mean_l)) %>% 
+  mutate(q_gfp = ifelse(q_gfp <= 0, 1, q_gfp),
+         c_gfp = ifelse(c_gfp <= 0, 1, c_gfp)) %>% 
+  mutate(
+    log_q_gfp = log(q_gfp),
+    log_c_gfp = log(c_gfp),
+    induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+    induced_q = log_q_gfp > 5.5 #Threshold is set at 5.5
+  ) %>%
+  mutate(transition = case_when(
+    (!induced_q & induced_c) ~ "going_down", 
+    (induced_q & !induced_c) ~ "going_up",
+    (!induced_q & !induced_c) ~ "down", 
+    (induced_q & induced_c) ~ "up"),
+    Conc_lev = ifelse(!induced_c, "Low C", "High C")
+  ) %>%
+  mutate(data_origin = "All") %>% 
+  ggplot()+
+  facet_grid(transition~condition, labeller = as_labeller(condition_names))+
+  stat_ecdf(aes(mean_l/log(2), col = transition, lty = data_origin))+
+  stat_ecdf(aes(mean_l/log(2), col = transition, lty = data_origin),
+            data = myframes_realtrace_switches %>% 
+              filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+              filter(going_up | going_down) %>% 
+              mutate(transition = case_when(
+                (!induced_q & induced_c) ~ "going_down", 
+                (induced_q & !induced_c) ~ "going_up",
+                (!induced_q & !induced_c) ~ "down", 
+                (induced_q & induced_c) ~ "up"),
+                Conc_lev = ifelse(!induced_c, "Low C", "High C")
+              ) %>% 
+              mutate(data_origin = ifelse(going_up, "Cell switching on", "Cell switching off")) #%>% 
+  )+ 
+  scale_linetype_manual(
+    name = "Cells",
+    breaks = c("All", "Cell switching on", "Cell switching off"),
+    labels = c("All" = "not switching", "Cell switching on" = "switching on", "Cell switching off" = "switching off"),
+    values = c(1,2,4)
+  )+
+  scale_color_manual(
+    name = "Induction state",
+    breaks = c("down", "going_up", "going_down", "up"),
+    labels = c("down" = "Uninduced",
+               "going_up" = "High prod., low c",
+               "up" = "Induced",
+               "going_down" = "Low prod., high c"),
+    values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+  )+
+  scale_x_continuous(
+    limits = c(0, 1.25),
+    breaks = c(0, 0.5, 1.0)
+    
+  )+
+  coord_cartesian(xlim = c(0, 1.2))+
+  labs(y="Cumulative distribution", x = "Growth rate (dbl/h)")+
+  theme(strip.text.y = element_blank())+
+  NULL
+
+
+```
+
+It seems like the distribution are following the expected trend : cells about to switch on have a lower growth rate than cells non switching before doing so, and inversely for cells switching off. Note that we still fine cells switching on in the low-prod high-c sector of cells switching off in the high prod- low c sectors, because of the duration of the lineages, but they are not very meaningful. 
+Because those distributions are biased by slow growing cells (being observed more) we can look at this plot after sampling one data point per cell cycle : 
+
+
+```{r}
+
+
+myframes_realtrace %>% 
+  anti_join(myframes_realtrace_switches) %>% 
+  ungroup() %>% 
+  filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+  filter(!is.na(mean_l)) %>% 
+  mutate(q_gfp = ifelse(q_gfp <= 0, 1, q_gfp),
+         c_gfp = ifelse(c_gfp <= 0, 1, c_gfp)) %>% 
+  mutate(
+    log_q_gfp = log(q_gfp),
+    log_c_gfp = log(c_gfp),
+    induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+    induced_q = log_q_gfp > 5.5 #Threshold is set at 5.5
+  ) %>%
+  mutate(transition = case_when(
+    (!induced_q & induced_c) ~ "going_down", 
+    (induced_q & !induced_c) ~ "going_up",
+    (!induced_q & !induced_c) ~ "down", 
+    (induced_q & induced_c) ~ "up"),
+    Conc_lev = ifelse(!induced_c, "Low C", "High C")
+  ) %>%
+  mutate(data_origin = "All") %>%
+  group_by(condition, transition, cell, time_sec) %>%
+  nest() %>% 
+  group_by(condition, transition, cell) %>%
+  sample_n(1) %>% 
+  unnest(c(data)) %>% 
+  ggplot()+
+  facet_grid(transition~condition, labeller = as_labeller(condition_names))+
+  stat_ecdf(aes(mean_l/log(2), col = transition, lty = data_origin))+
+  stat_ecdf(aes(mean_l/log(2), col = transition, lty = data_origin),
+            data = myframes_realtrace_switches %>% 
+              filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+              filter(going_up | going_down) %>% 
+              mutate(transition = case_when(
+                (!induced_q & induced_c) ~ "going_down", 
+                (induced_q & !induced_c) ~ "going_up",
+                (!induced_q & !induced_c) ~ "down", 
+                (induced_q & induced_c) ~ "up"),
+                Conc_lev = ifelse(!induced_c, "Low C", "High C")
+              ) %>% 
+              mutate(data_origin = ifelse(going_up, "Cell switching on", "Cell switching off")) %>% 
+              group_by(condition, transition, cell, time_sec) %>%
+              nest() %>% 
+              group_by(condition, transition, cell) %>%
+              sample_n(1) %>% 
+              unnest(c(data)) 
+  )+ 
+  scale_linetype_manual(
+    name = "Cells",
+    breaks = c("All", "Cell switching on", "Cell switching off"),
+    labels = c("All" = "not switching", "Cell switching on" = "switching on", "Cell switching off" = "switching off"),
+    values = c(1,2,4)
+  )+
+  scale_color_manual(
+    name = "Induction state",
+    breaks = c("down", "going_up", "going_down", "up"),
+    labels = c("down" = "Uninduced",
+               "going_up" = "High prod., low c",
+               "up" = "Induced",
+               "going_down" = "Low prod., high c"),
+    values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+  )+
+  scale_x_continuous(
+    limits = c(0, 1.25),
+    breaks = c(0, 0.5, 1.0)
+    
+  )+
+  coord_cartesian(xlim = c(0, 1.2))+
+  labs(y="Cumulative distribution", x = "Growth rate (dbl/h)")+
+  theme(strip.text.y = element_blank())+
+  NULL
+
+
+```
+
+
+This way of proceeding seems to give a more meaningfull picture, compared to including all data, and the conclusion remain unchanged. We can therefore apply this way of computing the data, and remove the display of cell switching on and that are in the "down" transition zone, or switching off and that are in the "up" transition zone. 
+
+```{r}
+
+(myplots[['sugarmix_singlecell_cdfs']]<-
+   (
+     myframes_realtrace %>% 
+       anti_join(myframes_realtrace_switches) %>% 
+       ungroup() %>% 
+       filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+       filter(!is.na(mean_l)) %>% 
+       mutate(q_gfp = ifelse(q_gfp <= 0, 1, q_gfp),
+              c_gfp = ifelse(c_gfp <= 0, 1, c_gfp)) %>% 
+       mutate(
+         log_q_gfp = log(q_gfp),
+         log_c_gfp = log(c_gfp),
+         induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+         induced_q = log_q_gfp > 5.5 #Threshold is set at 5.5
+       ) %>%
+       mutate(transition = case_when(
+         (!induced_q & induced_c) ~ "going_down", 
+         (induced_q & !induced_c) ~ "going_up",
+         (!induced_q & !induced_c) ~ "down", 
+         (induced_q & induced_c) ~ "up"),
+         Conc_lev = ifelse(!induced_c, "Low C", "High C")
+       ) %>%
+       filter(transition %in% c("going_down", "going_up")) %>% 
+       mutate(data_origin = "All") %>% 
+       mutate(Conc_lev = factor(Conc_lev, levels = c("Low C", "High C"))) %>% 
+       group_by(condition, transition, cell, time_sec) %>%
+       nest() %>% 
+       group_by(condition, transition, cell) %>%
+       sample_n(1) %>% 
+       unnest(c(data)) %>% 
+       ggplot()+
+       facet_grid(Conc_lev~condition, labeller = as_labeller(condition_names))+
+       stat_ecdf(aes(mean_l/log(2), col = transition, lty = data_origin))+
+       stat_ecdf(aes(mean_l/log(2), col = transition, lty = data_origin),
+                 data = myframes_realtrace_switches %>% 
+                   filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+                   filter(going_up | going_down) %>% 
+                   mutate(transition = case_when(
+                     (!induced_q & induced_c) ~ "going_down", 
+                     (induced_q & !induced_c) ~ "going_up",
+                     (!induced_q & !induced_c) ~ "down", 
+                     (induced_q & induced_c) ~ "up"),
+                     Conc_lev = ifelse(!induced_c, "Low C", "High C")
+                   ) %>% 
+                   filter(!((going_up & transition %in% c("up", "going_down")) | (going_down & transition %in% c("down", "going_up")))) %>%
+                   filter(transition %in% c("going_down", "going_up")) %>% 
+                   mutate(Conc_lev = factor(Conc_lev, levels = c("Low C", "High C"))) %>% 
+                   mutate(data_origin = ifelse(going_up, "Cell switching on", "Cell switching off")) %>%
+                   group_by(condition, transition, cell, time_sec) %>%
+                   nest() %>% 
+                   group_by(condition, transition, cell) %>%
+                   sample_n(1) %>% 
+                   unnest(c(data)) 
+       )+ 
+       scale_linetype_manual(
+         name = "Cells",
+         breaks = c("All", "Cell switching on", "Cell switching off"),
+         labels = c("All" = "not switching", "Cell switching on" = "switching on", "Cell switching off" = "switching off"),
+         values = c(1,2,4)
+       )+
+       scale_color_manual(
+         name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "Low [GFP]\nhigh prod.",
+                    "up" = "Induced",
+                    "going_down" = "High [GFP]\nlow prod."),
+         values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         )+
+       scale_x_continuous(
+        limits = c(0, 1.25),
+        breaks = c(0, 0.5, 1.0)
+        
+       )+
+       scale_y_continuous(
+        breaks = c(0, 0.5, 1.0)
+       )+
+       coord_cartesian(xlim = c(0, 1.2))+
+       labs(y="Cumulative distribution", x = "Growth rate (dbl/h)")+
+       theme(strip.text.y = element_blank())+
+       NULL
+   ))
+  
+  
+```
+
+
+
+```{r}
+
+(myplots[['sugarmix_singlecell_gr_diff']] <- ((function(.seed = 10) {
+  
+  set.seed(.seed)
+
+  .df <- myframes_realtrace %>% 
+    anti_join(myframes_realtrace_switches) %>% 
+    ungroup() %>% 
+    filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+    filter(!is.na(mean_l)) %>% 
+    mutate(q_gfp = ifelse(q_gfp <= 0, 1, q_gfp),
+           c_gfp = ifelse(c_gfp <= 0, 1, c_gfp)) %>% 
+    mutate(
+      log_q_gfp = log(q_gfp),
+      log_c_gfp = log(c_gfp),
+      induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+      induced_q = log_q_gfp > 5.5 #Threshold is set at 5.5
+    ) %>%
+    mutate(transition = case_when(
+      (!induced_q & induced_c) ~ "going_down", 
+      (induced_q & !induced_c) ~ "going_up",
+      (!induced_q & !induced_c) ~ "down", 
+      (induced_q & induced_c) ~ "up"),
+      Conc_lev = ifelse(!induced_c, "Low C", "High C")
+    ) %>%
+    filter(transition %in% c("going_down", "going_up")) %>% 
+    mutate(data_origin = "All") %>% 
+    mutate(Conc_lev = factor(Conc_lev, levels = c("Low C", "High C"))) %>% 
+    group_by(condition, transition, cell, time_sec) %>%
+    nest() %>% 
+    group_by(condition, transition, cell) %>%
+    sample_n(1) %>%
+    unnest(c(data)) %>% 
+    ungroup() %>% 
+    mutate(growth_rate = mean_l/log(2)) %>% 
+    group_by(condition, data_origin, Conc_lev, transition) %>%
+    summarise(
+      mean_growth_rate = mean(growth_rate, na.rm = T),
+      sd_growth_rate = sd(growth_rate, na.rm = T),
+      sd_err_growth_rate = sd_growth_rate/sqrt(n()),
+      median_growth_rate = median(growth_rate, na.rm = T),
+      first_quartile = quantile(growth_rate, 0.25, na.rm = T),
+      third_quartile = quantile(growth_rate, 0.75, na.rm = T),
+    )
+  
+  .df2 <- .df %>%
+    full_join( 
+      myframes_realtrace_switches %>%
+        filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>%
+        filter(going_up | going_down) %>%
+        mutate(transition = case_when(
+          (!induced_q & induced_c) ~ "going_down",
+          (induced_q & !induced_c) ~ "going_up",
+          (!induced_q & !induced_c) ~ "down",
+          (induced_q & induced_c) ~ "up"),
+          Conc_lev = ifelse(!induced_c, "Low C", "High C")
+        ) %>%
+        filter(!((going_up & transition %in% c("up", "going_down")) | (going_down & transition %in% c("down", "going_up")))) %>%
+        filter(transition %in% c("going_down", "going_up")) %>%
+        mutate(Conc_lev = factor(Conc_lev, levels = c("Low C", "High C"))) %>%
+        mutate(data_origin = ifelse(going_up, "Cell switching on", "Cell switching off")) %>%
+        group_by(condition, transition, cell, time_sec) %>%
+        nest() %>%
+        group_by(condition, transition, cell) %>%
+        sample_n(1) %>%
+        unnest(c(data)) %>%
+        ungroup() %>%
+        mutate(growth_rate = mean_l/log(2)) %>%
+        group_by(condition, data_origin, Conc_lev, transition) %>%
+        summarise(
+          mean_growth_rate = mean(growth_rate, na.rm = T),
+          sd_growth_rate = sd(growth_rate, na.rm = T),
+          sd_err_growth_rate = sd_growth_rate/sqrt(n()),
+          median_growth_rate = median(growth_rate, na.rm = T),
+          first_quartile = quantile(growth_rate, 0.25, na.rm = T),
+          third_quartile = quantile(growth_rate, 0.75, na.rm = T),
+        ) %>%
+        # filter(condition == "lac002_glu32uM") %>%
+        # filter(condition == "lac002_glu64uM") %>%
+        identity() 
+      )
+      
+      
+      ggplot(.df)+
+        facet_wrap(~condition, labeller = as_labeller(condition_names))+
+        geom_pointrange(aes(x = Conc_lev, y=median_growth_rate,  ymin = first_quartile, ymax = third_quartile, col = transition, shape = data_origin!="All"), position = position_dodge(width =0.75),
+                        data = .df2 )+
+    scale_y_continuous(limits = c(0.4, NA), breaks = c(0.5, 0.75, 1.0)) +
+     # scale_x_discrete(
+     #   name= "Lac operon switch",
+     #   breaks = c("All.Low C", "Cell switching on.Low C","All.High C", "Cell switching off.High C"),
+     #   limits = c("All.Low C", "Cell switching on.Low C","All.High C", "Cell switching off.High C"),
+     #   label = c("not switching ON", "switching ON","not switching OFF", "switching off")
+     #   # label = c("No", "ON","No", "OFF")
+     #   )+
+     scale_x_discrete(
+       name= "Lac operon switch",
+       breaks = c("Low C", "High C"),
+       limits =  c("Low C", "High C"),
+       label = c("Low [GFP]\nhigh prod.", "High [GFP]\nlow prod.")
+       # label = c("Increasing prod.", "Decreasing prod.")
+       # label = c("switch ON", "switch OFF")
+       # label = c("ON", "OFF")
+       # label = c("No", "ON","No", "OFF")
+       )+
+       scale_linetype_manual(
+         name = "Cells",
+         breaks = c("All", "Cell switching on", "Cell switching off"),
+         labels = c("All" = "not switching", "Cell switching on" = "switching on", "Cell switching off" = "switching off"),
+         values = c(1,2,4)
+       )+
+       scale_color_manual(
+         name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         )+
+       scale_fill_manual(
+         name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         )+
+       scale_shape_manual(
+         name = "Cell fate",
+         limits = c(F, T),
+         breaks = c(F, T),
+         labels = c("not switching","switching"),
+         values = c(4, 19)
+         )+
+       labs(y="Growth rate (dbl/h)")+
+       theme(strip.background = element_blank(),
+             axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+             axis.title.x = element_blank(),
+             # legend.text = element_text(size=5, angle = 90),
+             legend.position = c(0, 0),
+             legend.justification = c(-0.02, -0.2),
+             legend.title = element_blank(),
+             legend.text = element_text(margin = margin(r = 10, unit = "pt"))
+             # axis.title.x = element_blank(hjust = 0, vjust = 0)
+             )+
+       # guides(col = "none", alpha = "none", fill = "none", shape="none")+
+       guides(col = "none", alpha = "none", fill = "none",
+              shape = guide_legend(nrow = 1,
+                                   # label.position = "bottom",
+                                   # label.hjust = 0.5,
+                                   # label.vjust = 0.5
+                                   ))+
+      # coord_cartesian(ylim = c(0.7, 1.0))+
+       NULL
+})()))
+  
+```
+
+
+
+Calculating p-value of the differences :
+
+```{r}
+
+(function(.seed = 10) {
+  
+  set.seed(.seed)
+
+tmp_df <- 
+myframes_realtrace %>% 
+  anti_join(myframes_realtrace_switches) %>% 
+  ungroup() %>% 
+  filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+  filter(!is.na(mean_l)) %>% 
+  mutate(q_gfp = ifelse(q_gfp <= 0, 1, q_gfp),
+         c_gfp = ifelse(c_gfp <= 0, 1, c_gfp)) %>% 
+  mutate(
+    log_q_gfp = log(q_gfp),
+    log_c_gfp = log(c_gfp),
+    induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+    induced_q = log_q_gfp > 5.5 #Threshold is set at 5.5
+  ) %>%
+  mutate(transition = case_when(
+    (!induced_q & induced_c) ~ "going_down", 
+    (induced_q & !induced_c) ~ "going_up",
+    (!induced_q & !induced_c) ~ "down", 
+    (induced_q & induced_c) ~ "up"),
+    Conc_lev = ifelse(!induced_c, "Low C", "High C")
+  ) %>%
+  filter(transition %in% c("going_down", "going_up")) %>% 
+  mutate(data_origin = "All") %>% 
+  full_join( myframes_realtrace_switches %>%
+               filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>%
+               filter(going_up | going_down) %>%
+               mutate(transition = case_when(
+                 (!induced_q & induced_c) ~ "going_down",
+                 (induced_q & !induced_c) ~ "going_up",
+                 (!induced_q & !induced_c) ~ "down",
+                 (induced_q & induced_c) ~ "up"),
+                 Conc_lev = ifelse(!induced_c, "Low C", "High C")
+               ) %>%
+               mutate(data_origin = ifelse(going_up, "Cell switching on", "Cell switching off")) %>%
+               filter(!((going_up & transition %in% c("up", "going_down")) | (going_down & transition %in% c("down", "going_up")))) %>%
+               filter(transition %in% c("going_down", "going_up")) 
+  )%>%
+  group_by(data_origin, condition, transition, cell, time_sec) %>%
+  nest() %>%
+  group_by(data_origin, condition, transition, cell) %>%
+  sample_n(1) %>%
+  unnest(c(data)) %>%
+  ungroup() %>%
+  mutate(growth_rate = mean_l/log(2))# %>%
+
+tmp_df %>% 
+group_by(condition, Conc_lev) %>% 
+  nest() %>% 
+  mutate(model = map(data, ~t.test(.$growth_rate[.$data_origin == "All"],.$growth_rate[.$data_origin != "All"])),
+         p_value = map(model, ~.$p.value)
+  ) %>% 
+  unnest(c(p_value))
+
+})
+ 
+```
+
+
+Plotting mean and standard error :
+
+```{r}
+
+(myplots[['sugarmix_singlecell_pval']] <- (function(.seed = 10) {
+  
+  set.seed(.seed)
+
+     myframes_realtrace %>% 
+       anti_join(myframes_realtrace_switches) %>% 
+       ungroup() %>% 
+       filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>% 
+       filter(!is.na(mean_l)) %>% 
+       mutate(q_gfp = ifelse(q_gfp <= 0, 1, q_gfp),
+              c_gfp = ifelse(c_gfp <= 0, 1, c_gfp)) %>% 
+       mutate(
+         log_q_gfp = log(q_gfp),
+         log_c_gfp = log(c_gfp),
+         induced_c = log_c_gfp > 5.5, #Threshold is set at 5.5
+         induced_q = log_q_gfp > 5.5 #Threshold is set at 5.5
+       ) %>%
+       mutate(transition = case_when(
+         (!induced_q & induced_c) ~ "going_down", 
+         (induced_q & !induced_c) ~ "going_up",
+         (!induced_q & !induced_c) ~ "down", 
+         (induced_q & induced_c) ~ "up"),
+         Conc_lev = ifelse(!induced_c, "Low C", "High C")
+       ) %>%
+       filter(transition %in% c("going_down", "going_up")) %>% 
+       mutate(data_origin = "All") %>% 
+       mutate(Conc_lev = factor(Conc_lev, levels = c("Low C", "High C"))) %>% 
+       group_by(condition, transition, cell, time_sec) %>%
+       nest() %>% 
+       group_by(condition, transition, cell) %>%
+       sample_n(1) %>%
+       unnest(c(data)) %>% 
+       ungroup() %>% 
+       mutate(growth_rate = mean_l/log(2)) %>% 
+       group_by(condition, data_origin, Conc_lev, transition) %>%
+       summarise(
+         mean_growth_rate = mean(growth_rate, na.rm = T),
+         sd_growth_rate = sd(growth_rate, na.rm = T),
+         sd_err_growth_rate = sd_growth_rate/sqrt(n()),
+         median_growth_rate = median(growth_rate, na.rm = T),
+         first_quartile = quantile(growth_rate, 0.25, na.rm = T),
+         third_quartile = quantile(growth_rate, 0.75, na.rm = T),
+       ) %>%
+       ggplot()+
+       facet_wrap(~condition, labeller = as_labeller(condition_names))+
+       geom_pointrange(aes(x = Conc_lev, y=mean_growth_rate,  ymin = mean_growth_rate-sd_err_growth_rate, ymax = mean_growth_rate+sd_err_growth_rate, col = transition, shape = data_origin!="All"), position = position_dodge(width =0.75),
+                       data = . %>% full_join( myframes_realtrace_switches %>%
+                         filter(condition %in%  c("lac002_glu32uM", "lac002_glu64uM")) %>%
+                         filter(going_up | going_down) %>%
+                         mutate(transition = case_when(
+                           (!induced_q & induced_c) ~ "going_down",
+                           (induced_q & !induced_c) ~ "going_up",
+                           (!induced_q & !induced_c) ~ "down",
+                           (induced_q & induced_c) ~ "up"),
+                           Conc_lev = ifelse(!induced_c, "Low C", "High C")
+                         ) %>%
+                         filter(!((going_up & transition %in% c("up", "going_down")) | (going_down & transition %in% c("down", "going_up")))) %>%
+                         filter(transition %in% c("going_down", "going_up")) %>%
+                         mutate(Conc_lev = factor(Conc_lev, levels = c("Low C", "High C"))) %>%
+                         mutate(data_origin = ifelse(going_up, "Cell switching on", "Cell switching off")) %>%
+                         group_by(condition, transition, cell, time_sec) %>%
+                         nest() %>%
+                         group_by(condition, transition, cell) %>%
+                         sample_n(1) %>%
+                         unnest(c(data)) %>%
+                         ungroup() %>%
+                         mutate(growth_rate = mean_l/log(2)) %>%
+                         group_by(condition, data_origin, Conc_lev, transition) %>%
+                         summarise(
+                           mean_growth_rate = mean(growth_rate, na.rm = T),
+                           sd_growth_rate = sd(growth_rate, na.rm = T),
+                           sd_err_growth_rate = sd_growth_rate/sqrt(n()),
+                           median_growth_rate = median(growth_rate, na.rm = T),
+                           first_quartile = quantile(growth_rate, 0.25, na.rm = T),
+                           third_quartile = quantile(growth_rate, 0.75, na.rm = T),
+                         ) %>%
+                         identity())
+       )+
+       # geom_text(aes(x = X, y = Y, label = paste0("p = ", format(p_value, scientific = T ))), size = 2,
+       geom_text(aes(x = X, y = Y, label = format(p_value, scientific = T )),
+                data = tribble(
+                  ~condition, ~X, ~Y, ~p_value,
+                  "lac002_glu32uM", "High C", 0.95, 0.000000158,
+                  "lac002_glu32uM", "Low C", 1.0, 0.0000000198,
+                  "lac002_glu64uM", "High C", 1.0, 0.0145,
+                  "lac002_glu64uM", "Low C", 1.075, 0.0000915
+                  )
+                ) +
+    scale_y_continuous(limits = c(0.6, NA), breaks = c(0.5, 0.75, 1.0)) +
+     scale_x_discrete(
+       name= "Lac operon switch",
+       breaks = c("Low C", "High C"),
+       limits =  c("Low C", "High C"),
+       label = c("Low [GFP]\nhigh prod.", "High [GFP]\nlow prod.")
+       )+
+       scale_linetype_manual(
+         name = "Cells",
+         breaks = c("All", "Cell switching on", "Cell switching off"),
+         labels = c("All" = "not switching", "Cell switching on" = "switching on", "Cell switching off" = "switching off"),
+         values = c(1,2,4)
+       )+
+       scale_color_manual(
+         name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         )+
+       scale_fill_manual(
+         name = "Induction state",
+         breaks = c("down", "going_up", "going_down", "up"),
+         labels = c("down" = "Uninduced",
+                    "going_up" = "High prod., low c",
+                    "up" = "Induced",
+                    "going_down" = "Low prod., high c"),
+         values =  c("#0072B2",  "#009E73", "#D55E00", "#F0E442")
+         )+
+       scale_shape_manual(
+         name = "Cell fate",
+         limits = c(F, T),
+         breaks = c(F, T),
+         labels = c("not switching","switching"),
+         values = c(4, 19)
+         )+
+       labs(y="Growth rate (dbl/h)")+
+       theme(
+         # strip.background = element_blank(),
+         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+         axis.title.x = element_blank(),
+         legend.position = c(0, 0),
+         legend.justification = c(-0.02, -0.2),
+         legend.title = element_blank(),
+         legend.text = element_text(margin = margin(r = 10, unit = "pt"))
+       )+
+       guides(col = "none", alpha = "none", fill = "none",
+              shape = guide_legend(nrow = 1,
+                                   ))+
+       NULL
+})()) 
+  
+```
+
+
+<!-- # Final figures -->
+
+<!-- We get the final figure panels for the main figure  : -->
+
+<!-- ```{r, fig.height=18} -->
+
+
+<!-- cowplot::plot_grid( -->
+<!--   cowplot::plot_grid( -->
+<!--     fig_singlecell_GCS_D, -->
+<!--     fig_singlecell_GCS_E, labels = c("D","E"), ncol = 2, rel_widths = c(0.5, 0.5)), -->
+<!--   fig_singlecell_GCS_F, labels = c("","F"), ncol = 2, rel_widths = c(0.65, 0.35)) -->
+
+
+<!-- ggsave("~/R_projects/GCS_MoM_lac_GAUSSIAN_Processing/Summaries_reports/Fig_GCS_singlecell_median_quartiles.pdf", width=4.75 * 14/7, height=(4.75 * 14/7)/3.6, units = c("in")) -->
+
+<!-- ``` -->
+
+
+<!-- And the final suppfig  : -->
+
+<!-- ```{r, fig.height=18} -->
+
+<!-- cowplot::plot_grid( -->
+<!--   supfig_singlecell_GCS_A, labels = c("A","B"), nrow = 2, rel_heights = c(0.55, 0.45), -->
+<!--   supfig_singlecell_GCS_B) -->
+
+<!-- ggsave("~/R_projects/GCS_MoM_lac_GAUSSIAN_Processing/Summaries_reports/SupFig_GCS_singlecell.pdf", width=4.75 * 14/7, height=(4.75 * 14/7)/1.75, units = c("in")) -->
+
+
+<!-- cowplot::plot_grid( -->
+<!--   supfig_singlecell_GCS_A, labels = c("A",""), nrow = 2, rel_heights = c(0.55, 0.45), -->
+<!--   cowplot::plot_grid( -->
+<!--     supfig_singlecell_GCS_B, -->
+<!--     supfig_singlecell_GCS_C, labels = c("B","C"), ncol = 2, rel_widths = c(0.6, 0.4))) -->
+
+
+<!-- ggsave("~/R_projects/GCS_MoM_lac_GAUSSIAN_Processing/Summaries_reports/SupFig_GCS_singlecell_3panel.pdf", width=4.75 * 14/7, height=(4.75 * 14/7)/1.75, units = c("in")) -->
+
+<!-- ``` -->
+

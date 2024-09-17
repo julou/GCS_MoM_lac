@@ -5,5 +5,5 @@
 plots
 preproc
 data_*
-html
-src/html
+docs/*
+#realtrace/**/**

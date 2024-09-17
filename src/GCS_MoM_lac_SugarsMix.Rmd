@@ -862,6 +862,30 @@ myindct %>%
 ```
 
 
+```{r fraction induced, eval=FALSE}
+    myrates_mix %>% 
+    group_by(date, condition) %>% 
+    filter(between(grate, quantile(grate, .01, na.rm=TRUE), quantile(grate, .99, na.rm=TRUE) )) %>%
+    group_by(condition, induced) %>% 
+    summarise(
+      gr_mean=mean(grate/log(2)*3600),
+      gr_sd  =sd(grate/log(2)*3600),
+      n=n(),
+    ) %>% 
+    group_by(condition) %>% 
+    mutate(prop=n/sum(n)) %>% 
+    parse_sugarmix_conds(condition) %>% 
+    filter(treatment == "lac002") %>% 
+  select(condition , glu, induced, n) %>% 
+  mutate(induced = fct_recode(factor(induced), "uninduced"="0", "induced"="1")) %>% 
+  pivot_wider(names_from = "induced", values_from = "n", values_fill = 0) %>% 
+mutate(n=induced+uninduced, prop=induced/n) %>% 
+  arrange(glu) %>% 
+  print(n=Inf)
+  
+```
+
+
 ```{r more plots for Erik, eval=FALSE}
    myrates_mix %>% 
     group_by(date, condition) %>% 

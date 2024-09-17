@@ -328,3 +328,30 @@ plot_grid(
 #   save_plot(here("plots", "SI_figs", "sugarmix-crp.pdf"), .,
 #             base_height=NULL, base_width=2.25 * 14/7, # 1 col
 #             base_aspect_ratio = 1)
+
+
+
+#### XXXX TO CLEAN UP
+
+cowplot::plot_grid(
+  myplots[['sugarmix_singlecell_rates']], 
+  myplots[['sugarmix_singlecell_cdfs']],
+  labels = c("A","B"), nrow = 2, rel_heights = c(0.55, 0.45)
+) %>% 
+save_plot(here("plots", "SI_figs", "sugarmix-switching.pdf"), .,
+          base_height=NULL, base_width=4.75 * 14/7, # 2 cols
+          base_aspect_ratio = 1.4)
+
+
+cowplot::plot_grid(
+  nrow = 2, rel_heights = c(0.55, 0.45), labels = c("A",""),
+  myplots[['sugarmix_singlecell_rates']], 
+  cowplot::plot_grid(
+    ncol = 2, rel_widths = c(0.6, 0.4), labels = c("B","C"), 
+    myplots[['sugarmix_singlecell_cdfs']],
+    myplots[['sugarmix_singlecell_pval']])
+  ) %>% 
+  save_plot(here("plots", "SI_figs", "sugarmix-switching-3panels.pdf"), .,
+            base_height=NULL, base_width=4.75 * 14/7, # 2 cols
+            base_aspect_ratio = 1.4)
+
