@@ -290,7 +290,7 @@ scale_color_sugars <- function(...) ggplot2::scale_color_manual(
 ) )
 
 save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_models']],
-          base_height=NULL, base_width=4.75 * 14/7, # 2 cols
+          base_height=NULL, base_width=7.25 * 14/9, # 2 cols
           base_asp = 1.5
 )
 
@@ -316,7 +316,7 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_mode
       # labs(y="LacY molecules         ") +
       labs(x="external [TMG] (µM)", y="[LacY] (µM)   ") +
       NULL,
-    ncol=1, rel_heights = c(1, 1, 1), labels=c("AUTO")
+    ncol=1, rel_heights = c(1.15, 1, 1), labels=c("AUTO")
   ),
   
   # MID COL
@@ -350,8 +350,8 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_mode
                                      .simplify_time_labels=TRUE) +
         geom_rect(xmin=-Inf, xmax=1.5, ymin=-Inf, ymax=Inf, fill='black', alpha=.03) +
         scale_colour_manual(values=c("non induced"="gray25", "induced"=qual_cols[3], "non growing"=qual_cols[1], "growing"=qual_cols[2]),
-                            limits=c("non induced", "induced", "growing", "non growing"), 
-                            guide=guide_legend(ncol=2)
+                            limits=c("non induced", "induced", "growing", "non growing"),
+                            guide=guide_legend(ncol=2),
         ) +
         coord_cartesian(ylim=c(NA, 1400)) +
         labs(y="[LacZ-GFP]          \n(FP/µm)           ", col="") +
@@ -368,7 +368,7 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_mode
       
       ncol=1, rel_heights = c(.4, .6), align = "v" ), 
     
-    ncol=1, rel_heights = c(1, 1.1), labels = c("D", "")
+    ncol=1, rel_heights = c(1, 1), labels = c("D", "")
   ),
   
   # RIGHT COL
@@ -382,7 +382,7 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_mode
       guides(col=guide_legend(title=NULL, direction = "vertical", ncol=2, )) +
       theme_cowplot_legend_inset() +
       theme(legend.position = 'top', #legend.box.spacing=unit(-1, "line"),
-            legend.box.margin=margin(t=-8, l=-48), # shift the whole legend horizontally
+            legend.box.margin=margin(t=-8, l=-18), # shift the whole legend horizontally
             # legend.margin=margin(t=-20),
       ) +
       labs(y='critical [TMG] (µM)  ') +
@@ -394,8 +394,8 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_models.pdf"), myfigs[['GCS_mode
 ) )
 
 save_plot(here("plots", "figs", "GCS_MoM_lac_fig_lac.pdf"), myfigs[['GCS_lac']],
-          base_height=NULL, base_width=4.75 * 14/7, # 2 cols
-          base_asp = 1.8 )
+          base_height=NULL, base_width=7.25 * 14/9, # 2 cols
+          base_asp = 1.6 )
 
 
 ### ### ### ###
@@ -457,58 +457,55 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_lac.pdf"), myfigs[['GCS_lac']],
 #         legend.position = c(1,1), legend.justification = c(1,1)) +
 #   NULL
 
-(myfigs[[2]] <- plot_grid(
-  NULL, 
-  NULL,
-  
-  myplots[['Cline_You2013']] +
-    scale_x_continuous(breaks=c(0, 0.5, 1)) +
-    coord_cartesian(xlim=c(0, 1.25), ylim=c(0, NA)) +
-    expand_limits(x=c(-.1, 1.4)) +
-    labs(y='max [LacZ] (MU)      ') +
-    NULL,
-  myplots[['lac_model_crp_phdiag']],
-  
-  NULL,
-  NULL,
-
-  myplots_miller[['GCS_cm_maxindct']](strain=='MG1655') +
-    scale_x_continuous(breaks=c(0, 0.5, 1)) +
-    coord_cartesian(xlim=c(0, 1.25), ylim=c(0, NA)) +
-    expand_limits(x=c(-.1, 1.4)) +
-    labs(y='max [LacZ] (MU)      ') +
-    theme(legend.position = 'none') +
-    NULL,
-  myplots_miller[['GCS_cm']](strain=='MG1655') +
-    guides(shape='none') +
-    scale_color_viridis_c(breaks=c(0,4,8)) +
-    theme_cowplot_legend_inset() +
-    labs(y="critical [TMG] (µM)      ", col="[cam]\n(µM)") +
-    theme(legend.position = "right", legend.key.height = unit(10, "pt")) +
-    guides(col=guide_colourbar(direction = "horizontal", title.position = "left", barwidth=unit(58, 'pt'))) +
-    theme(legend.position = c(0.03,0.03), legend.justification = c(0,0)) +
-    NULL,
-  
-  ncol=2, labels=c('', '', 'A', 'B', '', '', 'C', 'D'),
-  rel_widths=c(1, 1.1), rel_heights=c(.1, 1, .1, 1), 
-  align='hv'
-) )
-
-save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[[2]],
-          base_height=NULL, base_width=2.25 * 14/7, # 1 col
-          base_asp = 1
-)
+# (myfigs[[2]] <- plot_grid(
+#   NULL, 
+#   NULL,
+#   
+#   myplots[['Cline_You2013']] +
+#     scale_x_continuous(breaks=c(0, 0.5, 1)) +
+#     coord_cartesian(xlim=c(0, 1.25), ylim=c(0, NA)) +
+#     expand_limits(x=c(-.1, 1.4)) +
+#     labs(y='max [LacZ] (MU)      ') +
+#     NULL,
+#   myplots[['lac_model_crp_phdiag']],
+#   
+#   NULL,
+#   NULL,
+# 
+#   myplots_miller[['GCS_cm_maxindct']](strain=='MG1655') +
+#     scale_x_continuous(breaks=c(0, 0.5, 1)) +
+#     coord_cartesian(xlim=c(0, 1.25), ylim=c(0, NA)) +
+#     expand_limits(x=c(-.1, 1.4)) +
+#     labs(y='max [LacZ] (MU)      ') +
+#     theme(legend.position = 'none') +
+#     NULL,
+#   myplots_miller[['GCS_cm']](strain=='MG1655') +
+#     guides(shape='none') +
+#     scale_color_viridis_c(breaks=c(0,4,8)) +
+#     theme_cowplot_legend_inset() +
+#     labs(y="critical [TMG] (µM)      ", col="[cam]\n(µM)") +
+#     theme(legend.position = "right", legend.key.height = unit(10, "pt")) +
+#     guides(col=guide_colourbar(direction = "horizontal", title.position = "left", barwidth=unit(58, 'pt'))) +
+#     theme(legend.position = c(0.03,0.03), legend.justification = c(0,0)) +
+#     NULL,
+#   
+#   ncol=2, labels=c('', '', 'A', 'B', '', '', 'C', 'D'),
+#   rel_widths=c(1, 1.1), rel_heights=c(.1, 1, .1, 1), 
+#   align='hv'
+# ) )
+# 
+# save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[[2]],
+#           base_height=NULL, base_width=2.25 * 14/7, # 1 col
+#           base_asp = 1
+# )
 
 
 ### ### ### ###
 #### FIG GCS with regulation ####
-(myfigs[['GCS_regul']] <- plot_grid(
-  nrow=2, labels="", rel_heights=c(2, 1),
-  plot_grid(
-  # plot first two rows
-    align='v', nrow=1, rel_widths = c(1.1, 1.5, 1), labels=c("", "C", ""),
+(myfigs[['GCS_sugarpref']] <- plot_grid(
+    nrow=1, rel_widths = c(1, 1.6), labels=c("", "C"),
     plot_grid(
-    ncol=1, rel_heights = c(1, 1), labels = c("A", "B"),
+      align='v', ncol=1, rel_heights = c(1, 1.1), labels = c("A", "B"),
     myplots[['critic_conc_monod']] +
       labs(y="critical nutrient\nconcentration (µM)") +
       # theme(axis.title.x = element_markdown()) +
@@ -520,46 +517,55 @@ save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[[2]],
       theme(legend.position = c(1, 1), legend.justification = c(1, 1)) +
       NULL),
   
-  myplots[['sugarmix_induction']](.xbreaks = 2 * 10^(0:4)),
-  
-  plot_grid(
-    ncol=1, rel_heights = c(1, 1.2), labels = c("G", "H"),
-    myplots_miller[['GCS_cm_maxindct']](strain=='MG1655') +
-      scale_x_continuous(breaks=c(0, 0.5, 1)) +
-      coord_cartesian(xlim=c(0, 1.25), ylim=c(0, NA)) +
-      expand_limits(x=c(-.1, 1.4)) +
-      labs(y='max [LacZ] (MU)      ') +
-      theme(legend.position = 'none') +
-      NULL,
-    myplots_miller[['GCS_cm']](strain=='MG1655', .with_sugar_data=TRUE) +
-      # geom_point(aes(x2, y2), col="gray85", data=
-      #              myplots_miller[['GCS_sugars']]() %>% layer_data(2) %>% mutate(x2=exp(x), y2=exp(y)) ) +
-      guides(shape='none') +
-      scale_color_viridis_c(breaks=c(0,4,8)) +
-      theme_cowplot_legend_inset() +
-      labs(y="critical [TMG] (µM)      ", col="[cam]\n(µM)") +
-      theme(legend.position = "right", legend.key.height = unit(10, "pt")) +
-      guides(col=guide_colourbar(direction = "horizontal", title.position = "left", barwidth=unit(58, 'pt'))) +
-      theme(legend.position = 'top') +
-      # theme(legend.position = c(0.03,0.03), legend.justification = c(0,0)) +
-      NULL) 
-  ),
-  
-  cowplot::plot_grid(
-    ncol = 3, labels = c("D","E","F"), rel_widths = c(0.33, 0.33, 0.34), 
-    myplots[['sugarmix_singlecell_traces']],
-    myplots[['sugarmix_singlecell_phasediagram']],
-    myplots[['sugarmix_singlecell_gr_diff']] +
-      scale_x_discrete( labels=c("Low C"="Switch ON", "High C"="Switch OFF")) +
-      # theme(legend.key.spacing = unit(rel(0.5), "pt")), 
-      theme(legend.text = element_text(margin = margin(r=12, unit = "pt")),
-            legend.spacing.x = unit(0, "pt"))
-  )
+  myplots[['sugarmix_induction']](.xbreaks = 2 * 10^(0:4))
+
 ) )
-save_plot(here("plots", "figs", "GCS_MoM_lac_fig_regul.pdf"), myfigs[['GCS_regul']],
-          base_height=NULL, base_width=4.75 * 14/7, # 2 cols
-          base_asp = 1.2
+save_plot(here("plots", "figs", "GCS_MoM_lac_fig_sugarpref.pdf"), myfigs[['GCS_sugarpref']],
+          base_height=NULL, base_width=4.8 * 14/9, # two thirds of 2 cols
+          base_asp = 1.4
 )
  
 
+(myfigs[['GCS_sugarpref_switch']] <- plot_grid(
+  ncol = 3, labels = "AUTO", rel_widths = c(0.33, 0.33, 0.34), 
+  myplots[['sugarmix_singlecell_traces']],
+  myplots[['sugarmix_singlecell_phasediagram']],
+  myplots[['sugarmix_singlecell_gr_diff']] +
+    scale_x_discrete( labels=c("Low C"="Switch ON", "High C"="Switch OFF")) +
+    # theme(legend.key.spacing = unit(rel(0.5), "pt")), 
+    theme(legend.text = element_text(margin = margin(r=12, unit = "pt")),
+          legend.spacing.x = unit(0, "pt"))
+))
+save_plot(here("plots", "figs", "GCS_MoM_lac_fig_sugarpref_switch.pdf"), myfigs[['GCS_sugarpref_switch']],
+          base_height=NULL, base_width=7.25 * 14/9, # 2 cols
+          base_asp = 3.4
+)
+
+
+(myfigs[['GCS_lac_cm']] <- plot_grid(
+  nrow=1, rel_widths = c(1, 1.25), labels = "AUTO",
+  myplots_miller[['GCS_cm_maxindct']](strain=='MG1655') +
+    scale_x_continuous(breaks=c(0, 0.5, 1)) +
+    coord_cartesian(xlim=c(0, 1.25), ylim=c(0, NA)) +
+    expand_limits(x=c(-.1, 1.4)) +
+    labs(y='max [LacZ] (MU)      ') +
+    theme(legend.position = 'none') +
+    NULL,
+  myplots_miller[['GCS_cm']](strain=='MG1655', .with_sugar_data=TRUE) +
+    # geom_point(aes(x2, y2), col="gray85", data=
+    #              myplots_miller[['GCS_sugars']]() %>% layer_data(2) %>% mutate(x2=exp(x), y2=exp(y)) ) +
+    guides(shape='none') +
+    scale_color_viridis_c(breaks=c(0,4,8)) +
+    theme_cowplot_legend_inset() +
+    labs(y="critical [TMG] (µM)      ", col="[cam]\n(µM)") +
+    theme(legend.position = "right", legend.key.height = unit(10, "pt")) +
+    # guides(col=guide_colourbar(direction = "horizontal", title.position = "left", barwidth=unit(58, 'pt'))) +
+    # theme(legend.position = 'top') +
+    # theme(legend.position = c(0.03,0.03), legend.justification = c(0,0)) +
+    NULL) 
+)
+save_plot(here("plots", "figs", "GCS_MoM_lac_fig_cm.pdf"), myfigs[['GCS_lac_cm']],
+          base_height=NULL, base_width=4.8 * 14/9, # two thirds of 2 cols
+          base_asp = 2.2
+)
 

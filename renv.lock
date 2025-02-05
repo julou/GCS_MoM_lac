@@ -3,8 +3,8 @@
     "Version": "4.2.1",
     "Repositories": [
       {
-        "Name": "RSPM",
-        "URL": "https://packagemanager.rstudio.com/all/latest"
+        "Name": "PPM",
+        "URL": "https://packagemanager.posit.co/cran/latest"
       }
     ]
   },
@@ -13,7 +13,7 @@
       "Package": "BH",
       "Version": "1.84.0-0",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Hash": "a8235afbcd6316e6e91433ea47661013"
     },
     "DBI": {
@@ -110,7 +110,7 @@
       "Package": "RApiSerialize",
       "Version": "0.1.3",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Hash": "12cbd319d03b55edaa195695a155bb30"
     },
     "RColorBrewer": {
@@ -152,7 +152,7 @@
       "Package": "RcppParallel",
       "Version": "5.1.8",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "R"
       ],
@@ -396,7 +396,7 @@
       "Package": "colourpicker",
       "Version": "1.3.0",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "R",
         "ggplot2",
@@ -821,7 +821,7 @@
       "Package": "ggExtra",
       "Version": "0.10.1",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "R",
         "R6",
@@ -842,7 +842,7 @@
       "Package": "ggh4x",
       "Version": "0.2.8",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "cli",
         "ggplot2",
@@ -858,9 +858,9 @@
     },
     "ggplot2": {
       "Package": "ggplot2",
-      "Version": "3.4.4",
+      "Version": "3.5.1",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "PPM",
       "Requirements": [
         "MASS",
         "R",
@@ -879,7 +879,7 @@
         "vctrs",
         "withr"
       ],
-      "Hash": "313d31eff2274ecf4c1d3581db7241f9"
+      "Hash": "44c6a2f8202d5b7e878ea274b1092426"
     },
     "gh": {
       "Package": "gh",
@@ -1219,7 +1219,7 @@
       "Package": "kableExtra",
       "Version": "1.4.0",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "R",
         "digest",
@@ -1419,7 +1419,7 @@
       "Package": "multidplyr",
       "Version": "0.1.3",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "R",
         "R6",
@@ -1691,7 +1691,7 @@
       "Package": "qs",
       "Version": "0.26.3",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "BH",
         "R",
@@ -2060,7 +2060,7 @@
       "Package": "shinyjs",
       "Version": "2.1.0",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "R",
         "digest",
@@ -2073,7 +2073,7 @@
       "Package": "slider",
       "Version": "0.3.1",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "R",
         "cli",
@@ -2097,7 +2097,7 @@
       "Package": "stringfish",
       "Version": "0.16.0",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "R",
         "Rcpp",
@@ -2523,7 +2523,7 @@
       "Package": "warp",
       "Version": "0.2.1",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "https://packagemanager.rstudio.com/all/__linux__/jammy/latest",
       "Requirements": [
         "R"
       ],

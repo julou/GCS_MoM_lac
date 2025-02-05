@@ -702,7 +702,8 @@ myrates_lactulose %>%
     geom_hline(yintercept=switch(.varc, igr = 0.1, gfp_c = 250 ), lty="dashed", size=.25, col="gray20") +
     geom_boxplot(aes(ymin = q5, lower = q25, middle = q50, upper = q75, ymax = q95, 
                      col=type, width=prop, group=interaction(condition, time_bin, type)),
-                 stat = "identity", position = position_dodge2(preserve = "single") ) +
+                 stat = "identity", position = position_dodge2(preserve = "single"),
+                 show.legend=TRUE) +
     labs(x="time relative to switch (h)", y=substitute(.var)) +
     NULL
   if (.facet_dir == "h") .pl <- .pl + facet_grid(.~condition) 
