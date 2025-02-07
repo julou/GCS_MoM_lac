@@ -16,9 +16,10 @@ The R environment used for this project is managed using `renv` (running `renv::
 Learn more about collaborating with `renv` at https://rstudio.github.io/renv/articles/collaborating.html#collaborating-with-renv.
 
 Run `src/GCS_MoM_lac.R` to load the data and render the analysis files to html.
-Note that calling `render()` or `render_site()` from the command line allows to execute the function in the global env() (hence inheriting existing variables and keeping newly created ones).
+Note that calling `render()` or `render_site()` from the command line allows to execute the function in the global env() (hence inheriting existing variables and keeping newly created ones).  
+NB: a bug (?) of rmarkdown renders the figure files in the script directory (`src/`) instead of the output directory (`docs/`) for notebook with some cached chunks...
 
-These scripts rely heavily on [`multidplyr`](https://multidplyr.tidyverse.org)...
+These scripts rely heavily on [`multidplyr`](https://multidplyr.tidyverse.org).
 
 
 ## Rmardown rendering
