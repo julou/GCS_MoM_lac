@@ -1,8 +1,10 @@
 ---
 title: "Growth-coupled sensitivity to TMG during transient growth arrest"
 author: Thomas Julou
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+date: "`r format(Sys.time(), '%B, %Y')`"
 ---
+
+In this notebook, we analyse the growth-coupled sensitivity of the *lac* operon of *E. coli* to TMG, in the presence or not of a transient growth arrest. 
 
 ```{r}
 myscales[['lacl_gly']] <- scale_colour_discrete(

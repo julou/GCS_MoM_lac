@@ -86,7 +86,7 @@ myframes_switching %>%
   facet_wrap(~condition+date, dir="v", ncol=2, labeller=labeller(.cols=label_value, .multi_line=FALSE)) +
   # geom_rect(aes(xmin=t_start - 2*3600, xmax=t_end - 2*3600, ymin=-Inf, ymax=Inf, x=NaN, y=NaN, group=1), fill=rgb(1, 0, 0, .1), col='red', data=filter(condition_ts, condition=='switch', medium=='lactose')) +
   geom_path() + # geom_point() +
-  scale_colour_periodic(guide='none') +
+  scale_colour_periodic() +
   scale_alpha_discrete(range=c(0.1, 0.6)) +
   scale_x_hours() + #, limits=c(19*3600, 23*3600)) +
   ylim(-100, 1e4) +   expand_limits(x=0, y=0) +
@@ -131,7 +131,7 @@ mycells_switching <- myframes_switching %>%
       .growth_lag <- list(tau_idx=NaN, x_lag=NaN, slope_after=NaN)
     }
 
-    if (.df$condition %in% c('switch_long_lac_hiExpr')) {
+    if (unique(.df$condition) %in% c('switch_long_lac_hiExpr')) {
       .gfp_lag <- list(tau_idx=NaN, x_lag=NaN, slope_after=NaN)
       .t_200 <- NaN
       .t_200_fail <- NaN

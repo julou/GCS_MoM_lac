@@ -10,9 +10,14 @@ output:
 author: Thomas Julou
 
 navbar:
-  title: "Growth-coupled sensitivity of the *lac* operon in *E. coli*"
-  left:
-    - text: "Induction during transient growth arrest"
-      href: GCS_MoM_lac_Transient_Arrest.html
-    - text: "Induction in sugar mixtures"
-      href: GCS_MoM_lac_SugarsMix.html
+  title: "Growth-coupled sensitivity of the <i>lac</i> operon in <i>E. coli</i>"
+  right:
+    - text: "Menu"
+      # icon: fa-bars
+      menu:
+        - text: "Induction during transient growth arrest"
+          href: GCS_MoM_lac_Transient_Arrest.html
+        - text: "Induction in sugar mixtures: GCS at the population level"
+          href: GCS_MoM_lac_SugarsMix.html
+        - text: "Induction in sugar mixtures: GCS in individual cells"
+          href: GCS_MoM_lac_SugarsMix_realtrace.html

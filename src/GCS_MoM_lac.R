@@ -20,7 +20,8 @@ theme_cowplot_legend_inset <- function(.rel=12/14) theme(legend.title=element_te
 # set a parallel environment to run multidplyr (ALL packages explicitely loaded before will be loaded too)
 library(multidplyr)
 mycluster <- min(28, parallel::detectCores()-1) %>%  # do not use more than 28 cores
-  new_cluster(.options = callr::r_session_options(user_profile = FALSE)) %>% # disable user profile to avoid endless startup with `renv`
+  # new_cluster(.options = callr::r_session_options(user_profile = FALSE)) %>% # disable user profile to avoid endless startup with `renv`
+  new_cluster() %>% 
   cluster_library( # load currently loaded packages on each core (but multidplyr)
     sessionInfo()$otherPkgs %>% names() %>% setdiff("multidplyr")
   )
@@ -268,14 +269,14 @@ library(svglite)
 # library(ggtext)
 knitr::opts_chunk$set(
   echo=FALSE, message=FALSE, warning=FALSE,
-  dev="svglite"
+  dev="png" # "svglite"'s output is ugly in Safari
 )
 # rmarkdown::clean_site()
 
 # render control plots of each GC
 # source('./src/MoM_lacDilution_GCplots.R')
 
-rmarkdown::render_site('./src/GCS_MoM_lac_Lags_Estimation.Rmd') # rendered but not included in the menu links
+rmarkdown::render_site('./src/GCS_MoM_lac_Lags_Estimation.Rmd', ) # rendered but not included in the menu links
 rmarkdown::render_site('./src/GCS_MoM_lac_Transient_Arrest.Rmd')
 rmarkdown::render_site('./src/GCS_MoM_lac_SugarsMix.Rmd')
 

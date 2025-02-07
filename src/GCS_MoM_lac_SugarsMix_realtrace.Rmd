@@ -1,8 +1,11 @@
 ---
-title: "GCS MoM lac SugarMix realtrace plots"
+title: "Induction in sugar mixtures: GCS in individual cells"
 author: "Théo Gervais"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+date: "`r format(Sys.time(), '%B, %Y')`"
 ---
+
+In this notebook, we analyse the growth-coupled sensitivity of the *lac* operon to lactose at the single-cell level, when *E. coli* grows on mixtures of glucose and lactose at a given concentration.
+
 
 ```{r include=FALSE}
 

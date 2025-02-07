@@ -1,8 +1,10 @@
 ---
-title: "Growth-coupled sensitivity to lactose during E. coli growth on glucose-lactose mixture"
+title: "Induction in sugar mixtures: GCS at the population level"
 author: Thomas Julou
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+date: "`r format(Sys.time(), '%B, %Y')`"
 ---
+
+In this notebook, we analyse the growth-coupled sensitivity of the *lac* operon to lactose, when *E. coli* grows on mixtures of glucose and lactose with different concentrations. 
 
 
 ```{r}
@@ -50,7 +52,8 @@ myframes %>%
   # geom_point() +
   geom_segment(aes(x=time_sec, xend=time_sec, y=vertical_bottom, yend=vertical_top, alpha=!discard_top)) +
   scale_x_hours(.5) +
-  scale_colour_periodic(guide='none') +
+  # scale_colour_periodic(guide='none') +
+  scale_colour_periodic() +
   theme(legend.position = 'none') +
   NULL
 
@@ -79,7 +82,8 @@ myframes %>%
   geom_line(aes(col=cell, group=cell), alpha=.4) +
   scale_x_hours() +
   scale_y_continuous(trans='log2') +
-  scale_colour_periodic(guide='none') +
+  # scale_colour_periodic(guide='none') +
+  scale_colour_periodic() +
   NULL
 
 myframes %>% 
@@ -102,13 +106,14 @@ myframes %>%
   # geom_hline(yintercept = .8) +
   geom_line(aes(col=cell, group=cell), alpha=.4) +
   scale_x_hours() +
-  scale_colour_periodic(guide='none') +
+  # scale_colour_periodic(guide='none') +
+  scale_colour_periodic() +
   NULL
 
 ```
 
 
-```{r}
+```{r fig.height=12}
 myframes %>% 
   filter(str_detect(condition, "(?:glu\\d+)|(?:lac\\d+)")) %>% 
   # filter(date == 20210122) %>% 
@@ -136,6 +141,7 @@ myframes %>%
   scale_y_continuous(limits=c(.8, 6), trans='log2') +
   scale_color_viridis_c(limits=c(NA, 1000), oob=scales::squish) +
   labs(y="cell length (µm)", col="[LacZ-GFP]") +
+  theme(legend.position="top") +
   NULL
 # ggsave("plots/sugar_mixtures_traces.pdf", width=9, height=5)
 
@@ -297,7 +303,7 @@ myrates_mix_all %>%
 
 We first examine how the proportion of induced cells changes during the experiment in order to study it after the transient.
 
-```{r}
+```{r fig.height=9}
 # plot prop_induced vs conc
 myrates_mix_all %>% 
   # filter(n>10) %>% 
@@ -329,6 +335,7 @@ myrates_mix_all %>%
   geom_point(aes(size=n)) +
   geom_line() +
   theme(panel.background = element_rect(fill='gray93')) +
+  scale_size_continuous(range=c(0.25, 1.5)) +
   NULL
 ```
 
@@ -458,7 +465,7 @@ myrates_mix <- myrates_mix %>%
 
 Let's check growth rate distributions as a function of glucose concentration for different treatments.
 
-```{r}
+```{r fig.height=9}
 (myplots[['sugarmix_gr_distr']] <- 
    myrates_mix %>% 
    group_by(date, condition) %>% 
@@ -494,7 +501,6 @@ For glucose only, let's verify that the growth rate does not depend on the posit
    mutate(date=paste('day', as.numeric(factor(date))) ) %>% 
    group_by(date, condition) %>% 
    mutate(prop = ifelse(induced, sum(induced)/n(), 1-sum(induced)/n())) %>% 
-   left_join(myframes %>% group_by(date, cell) %>% )
    mutate(b_rank=map_dbl(data, ~mean(.$b_rank)) ) %>% 
    filter(b_rank < 7) %>% 
    ggplot(aes(grate/log(2)*3600, col=b_rank)) +
@@ -760,7 +766,7 @@ myindct %>%
 ```
 
 
-```{r publication plot}
+```{r publication-plot}
 # 1%  ~ 10 g/L
 # 1µM ~ 1.8e-4 g/L ~ 0.18 mg/L
 (myplots[['sugarmix_induction']] <- function(.xbreaks=2^c(0, 4, 8)) {
@@ -1017,7 +1023,7 @@ myrates_mix %>%
 
 ```
 
-```{r glucose monod curve}
+```{r glucose-monod-curve}
 (myplots[['sugarmix_monod']] <- 
    myrates_mix %>% 
    group_by(date, condition) %>% 
@@ -1600,9 +1606,9 @@ myrates_mix %>% ungroup() %>%
 ```
 
 
-## Further analysis
+<!-- ## Further analysis -->
 
-There would be a lot to explore regarding e.g. switching dynamics at the single-cell level...
+<!-- There would be a lot to explore regarding e.g. switching dynamics at the single-cell level... -->
 
 ```{r eval=FALSE}
 myframes %>% 
