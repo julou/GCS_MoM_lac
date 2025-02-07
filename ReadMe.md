@@ -6,6 +6,8 @@ Data for bacterial growth curves and Miller assay are provided as RData files in
 
 Raw data from mother machine experiments are available from https://doi.org/10.5281/zenodo.7429484.
 
+Instantaneous growth rates and production rates were computed with RealTrace (https://github.com/nimwegenLab/RealTrace) for some experiments. The corresponding csv files are provided in `realtrace/` using git-lfs.
+
 
 ## R environment
 
