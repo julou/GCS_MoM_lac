@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Théo Gervais" />
+
+
+<title>Induction in sugar mixtures: GCS in individual cells</title>
+
+<script src="site_libs/header-attrs-2.27/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Growth-coupled sensitivity of the <i>lac</i> operon in <i>E. coli</i></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Menu
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="GCS_MoM_lac_Transient_Arrest.html">Induction during transient growth arrest</a>
+    </li>
+    <li>
+      <a href="GCS_MoM_lac_SugarsMix.html">Induction in sugar mixtures: GCS at the population level</a>
+    </li>
+    <li>
+      <a href="GCS_MoM_lac_SugarsMix_realtrace.html">Induction in sugar mixtures: GCS in individual cells</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Induction in sugar mixtures: GCS in
+individual cells</h1>
+<h4 class="author">Théo Gervais</h4>
+<h4 class="date">February, 2025</h4>
+
+</div>
+
+
+<p>In this notebook, we analyse the growth-coupled sensitivity of the
+<em>lac</em> operon to lactose at the single-cell level, when <em>E.
+coli</em> grows on mixtures of glucose and lactose at a given
+concentration.</p>
+<div id="sanity-checks" class="section level1">
+<h1>Sanity checks</h1>
+<p>We want to start by checking that the growth rates are the ones we
+expect to see, in relation with the bulk level analysis</p>
+<div id="sanity-check-on-instantaneous-growth-rate-distribution"
+class="section level2">
+<h2>Sanity check on instantaneous growth rate distribution</h2>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-2-1.svg" width="672" /></p>
+</div>
+<div id="sanity-check-on-average-cell-growth-rate-distribution"
+class="section level2">
+<h2>Sanity check on average cell growth rate distribution</h2>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-3-1.svg" width="672" /></p>
+<p>The picture looks very similar to what we previously computed on full
+cell cycle growth rates</p>
+</div>
+</div>
+<div id="distibution-of-concentration-and-production-rates"
+class="section level1">
+<h1>Distibution of concentration and production rates</h1>
+<p>To be able to define the switches we want to define thresholds in
+terms of concentration and volumic production rates, that separate
+induced from non induced cells.</p>
+<div id="distribution-of-concentration-induced-vs-non-induced"
+class="section level2">
+<h2>Distribution of concentration induced vs non induced</h2>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-4-1.svg" width="672" /></p>
+<p>It looks like the concentration separating non induced from induced
+lies between exp(5) (~150 gfp/µm) and exp(6) (~400 gfp/µm). Setting the
+threshold at exp(5.5) (~250 gfp/um) therefore sounds sane, and
+corresponds to the threshold used this far.</p>
+<p>How are the distributions of concentration for induced cells as a
+function of the glucose concentration ?
+<img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-5-1.svg" width="672" /></p>
+</div>
+<div id="distribution-of-production-induced-vs-non-induced"
+class="section level2">
+<h2>Distribution of production induced vs non induced</h2>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-6-1.svg" width="672" /></p>
+<p>Similarly, the production separating the uninduced from the induced
+state lies between exp(5) (~150 gfp/h/µm) and exp(6) (~400 gfp/h/µm)</p>
+<p>How are the distributions of production for induced cells as a
+function of the glucose concentration ?
+<img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-7-1.svg" width="672" /></p>
+</div>
+</div>
+<div id="defining-real-switches" class="section level1">
+<h1>Defining real switches</h1>
+<div id="switching-traces" class="section level2">
+<h2>Switching traces</h2>
+<p>We observe that, in conditions where the growth rate achieved on
+lactose and on glucose are the same, cells can switch on and off during
+the experiments, while in other conditions, cells only switch on at the
+beginning of the switch (here only mother cells are shown) :</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-8-1.svg" width="672" /></p>
+<p>Let’s zoom on the 64µM condition :</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-9-1.svg" width="672" /></p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-10-1.svg" width="672" /></p>
+</div>
+<div id="production-vs-concentration-plots" class="section level2">
+<h2>Production VS concentration plots</h2>
+<p>We want to call a cell switching based on its trajectory on a
+concentration-vs-production plot : long escapes leading to going from
+high production high concentration to low production low concentration,
+or the other way around, should be called switches.</p>
+<p>The cells having a “real” switch should be a sub-group of the cells
+that go out in the region of log_c &gt; 5.5 and log_q &lt; 5.5 or the
+region log_c &lt; 5.5 &amp; log_q &gt; 5.5.</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-11-1.svg" width="672" /></p>
+<p>Let’s see what it looks like if we naively plot this for all cells in
+the transitions area :</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-12-1.svg" width="672" /></p>
+<p>Taking only cells in the transitions area is not enough because most
+switches take more time than a single cell cycles, we therefore need to
+aggregate cell cycles</p>
+<div id="switching-lineage" class="section level3">
+<h3>Switching lineage</h3>
+<p>We first need to create a dataset containing the lineages that are
+switching. We allow the traces to be expanded 1h around the times of the
+switch (in the high c - high q or low c - low q area).</p>
+<p>Switches off are defined as any cell traces that start on the top
+right corner of the c-vs-q parameter spaces, and end in the bottom left
+corner.</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-14-1.svg" width="672" /></p>
+<p>Similarly, switches on are defined as any cell traces that start on
+the bottom left corner of the c-vs-q parameter spaces, and end in the
+top right corner.</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-15-1.svg" width="672" /></p>
+<p>The switches are coherent with what we try to achieve. We can look,
+for cells at steady state (after 5h), in various conditions, what
+fraction of cells are going up or down in different conditions</p>
+<pre><code>## # A tibble: 9 × 7
+##   condition       n_cells_going_up n_cells_going_down Fraction_cells_going…¹
+##   &lt;fct&gt;                      &lt;int&gt;              &lt;int&gt;                  &lt;dbl&gt;
+## 1 lac002                         4                  2               0.00392 
+## 2 lac002_glu2uM                 20                  1               0.0324  
+## 3 lac002_glu4uM                 11                  1               0.0148  
+## 4 lac002_glu8uM                  3                  1               0.00473 
+## 5 lac002_glu16uM                 7                  2               0.00207 
+## 6 lac002_glu32uM               270                151               0.0231  
+## 7 lac002_glu64uM               107                 86               0.0172  
+## 8 lac002_glu128uM               19                 33               0.00275 
+## 9 lac002_glu002                  1                  1               0.000543
+## # ℹ abbreviated name: ¹​Fraction_cells_going_up
+## # ℹ 3 more variables: Fraction_cells_going_down &lt;dbl&gt;,
+## #   Fraction_obs_going_up &lt;dbl&gt;, Fraction_obs_going_down &lt;dbl&gt;</code></pre>
+</div>
+</div>
+</div>
+<div id="average-growth-rate-of-switching-cells" class="section level1">
+<h1>Average growth rate of switching cells</h1>
+<p>We can now compute the average growth rate before switching on or off
+in all conditions, in order to see whether we observe a certain
+pattern.</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-17-1.svg" width="672" /></p>
+<p>As expected, the results are hard to interpret for most conditions,
+but we can look at the 32µM and 64µM conditions that are more
+informative. Let’s start by looking at the number of cells we observe
+per unit time in both condition and switches :</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-18-1.svg" width="672" /></p>
+<p>For comparison, the average cell growth rate of the induced and
+uninduced cells is plotted as horizontal lines. Note that computing the
+overall average growth rate yield poor results, because it overepresents
+slow growing cells, and we therefore use the median of mean growth rate
+over a cell cycle.</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-19-1.svg" width="672" />
+Here we can appreciate that cells that will eventually switch on are
+growing quite a bit slower than average, while cells that will
+eventually switch off grow faster in average. It looks though that the
+mean is lower than the median, which suggest that some slow growing
+cells are pulling the average down. Let’s plot ecdf as a function of
+time to see what fraction is responsible for this effect. Note that we
+take a sample of similar size (~200 cells)</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-20-1.svg" width="672" /></p>
+<p>There is a clear shift of growth rate distributions towards lower
+growth rates for cells switching on. A shift in growth rate distribution
+towards higher growth rates in off switching cells is also observed,
+although weaker : the majority of cells switching off grow faster than
+the majority of cell not switching, but we also observe cells growing
+slower that will switch on.</p>
+</div>
+<div
+id="growth-rate-distribution-of-switching-cells-in-different-area-of-the-parameter-space"
+class="section level1">
+<h1>Growth rate distribution of switching cells in different area of the
+parameter space</h1>
+<p>We now want to look whether the distribution of growth rate of cells
+switching on or off is typically lower/higher than the distribution of
+growth rate of cells that are not switching but have similar
+concentrations or production rates.</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-21-1.svg" width="672" /></p>
+<p>It seems like the distribution are following the expected trend :
+cells about to switch on have a lower growth rate than cells non
+switching before doing so, and inversely for cells switching off. Note
+that we still fine cells switching on in the low-prod high-c sector of
+cells switching off in the high prod- low c sectors, because of the
+duration of the lineages, but they are not very meaningful. Because
+those distributions are biased by slow growing cells (being observed
+more) we can look at this plot after sampling one data point per cell
+cycle :</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-22-1.svg" width="672" /></p>
+<p>This way of proceeding seems to give a more meaningfull picture,
+compared to including all data, and the conclusion remain unchanged. We
+can therefore apply this way of computing the data, and remove the
+display of cell switching on and that are in the “down” transition zone,
+or switching off and that are in the “up” transition zone.</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-23-1.svg" width="672" /></p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-24-1.svg" width="672" /></p>
+<p>Calculating p-value of the differences :</p>
+<pre><code>## function(.seed = 10) {
+##   
+##   set.seed(.seed)
+## 
+## tmp_df &lt;- 
+## myframes_realtrace %&gt;% 
+##   anti_join(myframes_realtrace_switches) %&gt;% 
+##   ungroup() %&gt;% 
+##   filter(condition %in%  c(&quot;lac002_glu32uM&quot;, &quot;lac002_glu64uM&quot;)) %&gt;% 
+##   filter(!is.na(mean_l)) %&gt;% 
+##   mutate(q_gfp = ifelse(q_gfp &lt;= 0, 1, q_gfp),
+##          c_gfp = ifelse(c_gfp &lt;= 0, 1, c_gfp)) %&gt;% 
+##   mutate(
+##     log_q_gfp = log(q_gfp),
+##     log_c_gfp = log(c_gfp),
+##     induced_c = log_c_gfp &gt; 5.5, #Threshold is set at 5.5
+##     induced_q = log_q_gfp &gt; 5.5 #Threshold is set at 5.5
+##   ) %&gt;%
+##   mutate(transition = case_when(
+##     (!induced_q &amp; induced_c) ~ &quot;going_down&quot;, 
+##     (induced_q &amp; !induced_c) ~ &quot;going_up&quot;,
+##     (!induced_q &amp; !induced_c) ~ &quot;down&quot;, 
+##     (induced_q &amp; induced_c) ~ &quot;up&quot;),
+##     Conc_lev = ifelse(!induced_c, &quot;Low C&quot;, &quot;High C&quot;)
+##   ) %&gt;%
+##   filter(transition %in% c(&quot;going_down&quot;, &quot;going_up&quot;)) %&gt;% 
+##   mutate(data_origin = &quot;All&quot;) %&gt;% 
+##   full_join( myframes_realtrace_switches %&gt;%
+##                filter(condition %in%  c(&quot;lac002_glu32uM&quot;, &quot;lac002_glu64uM&quot;)) %&gt;%
+##                filter(going_up | going_down) %&gt;%
+##                mutate(transition = case_when(
+##                  (!induced_q &amp; induced_c) ~ &quot;going_down&quot;,
+##                  (induced_q &amp; !induced_c) ~ &quot;going_up&quot;,
+##                  (!induced_q &amp; !induced_c) ~ &quot;down&quot;,
+##                  (induced_q &amp; induced_c) ~ &quot;up&quot;),
+##                  Conc_lev = ifelse(!induced_c, &quot;Low C&quot;, &quot;High C&quot;)
+##                ) %&gt;%
+##                mutate(data_origin = ifelse(going_up, &quot;Cell switching on&quot;, &quot;Cell switching off&quot;)) %&gt;%
+##                filter(!((going_up &amp; transition %in% c(&quot;up&quot;, &quot;going_down&quot;)) | (going_down &amp; transition %in% c(&quot;down&quot;, &quot;going_up&quot;)))) %&gt;%
+##                filter(transition %in% c(&quot;going_down&quot;, &quot;going_up&quot;)) 
+##   )%&gt;%
+##   group_by(data_origin, condition, transition, cell, time_sec) %&gt;%
+##   nest() %&gt;%
+##   group_by(data_origin, condition, transition, cell) %&gt;%
+##   sample_n(1) %&gt;%
+##   unnest(c(data)) %&gt;%
+##   ungroup() %&gt;%
+##   mutate(growth_rate = mean_l/log(2))# %&gt;%
+## 
+## tmp_df %&gt;% 
+## group_by(condition, Conc_lev) %&gt;% 
+##   nest() %&gt;% 
+##   mutate(model = map(data, ~t.test(.$growth_rate[.$data_origin == &quot;All&quot;],.$growth_rate[.$data_origin != &quot;All&quot;])),
+##          p_value = map(model, ~.$p.value)
+##   ) %&gt;% 
+##   unnest(c(p_value))
+## 
+## }</code></pre>
+<p>Plotting mean and standard error :</p>
+<p><img src="GCS_MoM_lac_SugarsMix_realtrace_files/figure-html/unnamed-chunk-26-1.svg" width="672" /></p>
+<!-- # Final figures -->
+<!-- We get the final figure panels for the main figure  : -->
+<!-- ```{r, fig.height=18} -->
+<!-- cowplot::plot_grid( -->
+<!--   cowplot::plot_grid( -->
+<!--     fig_singlecell_GCS_D, -->
+<!--     fig_singlecell_GCS_E, labels = c("D","E"), ncol = 2, rel_widths = c(0.5, 0.5)), -->
+<!--   fig_singlecell_GCS_F, labels = c("","F"), ncol = 2, rel_widths = c(0.65, 0.35)) -->
+<!-- ggsave("~/R_projects/GCS_MoM_lac_GAUSSIAN_Processing/Summaries_reports/Fig_GCS_singlecell_median_quartiles.pdf", width=4.75 * 14/7, height=(4.75 * 14/7)/3.6, units = c("in")) -->
+<!-- ``` -->
+<!-- And the final suppfig  : -->
+<!-- ```{r, fig.height=18} -->
+<!-- cowplot::plot_grid( -->
+<!--   supfig_singlecell_GCS_A, labels = c("A","B"), nrow = 2, rel_heights = c(0.55, 0.45), -->
+<!--   supfig_singlecell_GCS_B) -->
+<!-- ggsave("~/R_projects/GCS_MoM_lac_GAUSSIAN_Processing/Summaries_reports/SupFig_GCS_singlecell.pdf", width=4.75 * 14/7, height=(4.75 * 14/7)/1.75, units = c("in")) -->
+<!-- cowplot::plot_grid( -->
+<!--   supfig_singlecell_GCS_A, labels = c("A",""), nrow = 2, rel_heights = c(0.55, 0.45), -->
+<!--   cowplot::plot_grid( -->
+<!--     supfig_singlecell_GCS_B, -->
+<!--     supfig_singlecell_GCS_C, labels = c("B","C"), ncol = 2, rel_widths = c(0.6, 0.4))) -->
+<!-- ggsave("~/R_projects/GCS_MoM_lac_GAUSSIAN_Processing/Summaries_reports/SupFig_GCS_singlecell_3panel.pdf", width=4.75 * 14/7, height=(4.75 * 14/7)/1.75, units = c("in")) -->
+<!-- ``` -->
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Thomas Julou" />
+
+
+<title>Growth-coupled sensitivity to TMG during transient growth arrest</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Growth-coupled sensitivity of the <i>lac</i> operon in <i>E. coli</i></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Menu
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="GCS_MoM_lac_Transient_Arrest.html">Induction during transient growth arrest</a>
+    </li>
+    <li>
+      <a href="GCS_MoM_lac_SugarsMix.html">Induction in sugar mixtures: GCS at the population level</a>
+    </li>
+    <li>
+      <a href="GCS_MoM_lac_SugarsMix_realtrace.html">Induction in sugar mixtures: GCS in individual cells</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Growth-coupled sensitivity to TMG during
+transient growth arrest</h1>
+<h4 class="author">Thomas Julou</h4>
+<h4 class="date">February, 2025</h4>
+
+</div>
+
+
+<p>In this notebook, we analyse the growth-coupled sensitivity of the
+<em>lac</em> operon of <em>E. coli</em> to TMG, in the presence or not
+of a transient growth arrest.</p>
+<div id="controls" class="section level2">
+<h2>Controls</h2>
+<p>Distribution of growth rate in the initial condition.</p>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/unnamed-chunk-2-1.svg" /><!-- --></p>
+<p>Position effect in the growth lane on induction lag: cells closer to
+the closed end tend to induce later, in particular for the slower
+inducing subpopulation. Since lactulose is expected to be in large
+excess, this raises the question whether TMG can be titrated by the
+first cells close to the GL opening… Note that this effect is not
+critical for our analysis as we focus on the comparison of induction
+outcome between glycerol and lactulose rather than on its dynamics.</p>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/unnamed-chunk-3-1.svg" /><!-- --></p>
+</div>
+<div id="decoupling-growth-and-induction" class="section level2">
+<h2>Decoupling growth and induction</h2>
+<p>In order to compare induction at a given inducer concentration in
+growing and arrested cells, we use lactulose. <em>E. coli</em> can
+metabolize lactulose when it expresses LacY and LacZ but lactulose is
+reported not to be an inhibitor of LacI. Hence an mixture of lactulose
+and TMG can be used to recapitulate the phenomenology of the induction
+by lactose where cells transiently stop growing (although at the
+concentration of nutrient and inducer can be decoupled).</p>
+<p>The fraction of induced cells has been reported to increase abruptly
+with the (log of the) TMG concentration. We identify the upper range of
+TMG concentrations that are low enough that no cell induce after 5h when
+growing on glycerol. xxx We predict that this concentration of TMG will
+be high enough for cells to induce and resume growth when switched to
+TMG and lactulose, since cells cannot use lactulose after the switch and
+are forced to transiently stop growing.</p>
+<p>First let’s look at some raw length traces, coloured using an
+arbitrary fluorescence concentration threshold (to visualise cells
+expressing LacZ-GFP at detectable levels). It reveals that some cells
+can grow on lactulose without TMG (and even sometimes express LacZ-GFP
+weakly); however, when exposed to lactulose and TMG cells express more
+LacZ-GFP and grow faster. The sustained growth on lactulose without TMG
+can be due to nutrients traces in lactulose (in particular galactose) or
+to undocumented induction by lactulose (e.g. if glycerol is present in
+the cytoplasm, galactosyl-glycerol will be produced by LacZ similarly to
+allolactose synthesis).</p>
+<p>This constitutes a confounding effect since we need to distinguish
+the inducing effect of the TMG from the weak spontaneous induction
+observed in lactulose only.</p>
+<p>In addition, after comparing the induction by TMG in cells growing on
+glycerol or lactulose using our default imaging protocol (using a 2x
+lower acquisition frequency, condition named “stdIllum”), we noticed
+that an unexpectedly high fraction of cells stopped growing and didn’t
+induce in lactulose+TMG. We hypothesized that growth arrested cells were
+more sensitive to phototoxicity and repeated the experiments by reducing
+5× the fluorescence illumination during the lactulose episode and
+switching cells back to glycerol in order to check whether arrested
+cells (if any) are still viable.</p>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/unnamed-chunk-5-1.svg" /><!-- --></p>
+<p>By increasing the induction threshold (+1000 LacZ-GFP molecules
+instead of +200 by default; picked according to raw traces), it is
+possible to measure induction lags specific for TMG in lactulose. These
+distributions indicate a large fraction of non inducing cells (see below
+for a more detailed analysis). Noticeably, using a lower induction
+threshold, an induction lag can be measured for more cells but at the
+cost of observing more cells induced by lactulose only (hence the
+induction lag doesn’t correspond to the TMG specific induction
+anymore).</p>
+<p>Importantly, the distribution of induction lags is not truncated and
+indicates that all induction has already taken place after 7h. In
+further analysis, we will compare LacZ-GFP level and instantaneous
+growth rate at this time.</p>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/unnamed-chunk-7-1.svg" /><!-- --></p>
+</div>
+<div id="growth-arrest-and-lacz-gfp-expression-after-the-lag"
+class="section level2">
+<h2>Growth arrest and LacZ-GFP expression after the lag</h2>
+<p>Since length traces have more complex shapes than for the switch to
+lactose, it is not possible to fit a model corresponding to no growth
+followed by linear increase. Instead we compare the instantaneous growth
+rate (computed using 3 time points for each data point) in windows of 1h
+before and after the switch.</p>
+<p>This plot reveals that, while there is sustained growth and no
+induction in glycerol, bacteria exposed to 20µM TMG with lactulose will
+in majority express their lac operon and resume growth.</p>
+<p>In order to focus on the effect induced by TMG, one uses thresholds
+for growth and induction which are at the upper ends of their
+distribution in lactulose without TMG: 250 GFP/µm for induction, and 0.1
+dbl/h for growth.</p>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/unnamed-chunk-9-1.svg" /><!-- --></p>
+<p>When focusing on 7-8h after the switch (i.e. after all inducible
+cells have switched on), three expression states can be distinguished in
+the distributions of LacZ-GFP concentration:</p>
+<ul>
+<li>uninduced (before the switch or with glycerol; &lt;100
+molecules/µm)</li>
+<li>weak spontaneous induction due to lactulose (between 100 and 250
+molecules)</li>
+<li>induction due to TMG in lactulose (&gt;250 molecules/µm)</li>
+</ul>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/unnamed-chunk-10-1.svg" /><!-- --></p>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/unnamed-chunk-11-1.svg" /><!-- --></p>
+<pre><code>## # A tibble: 5 × 4
+##   condition                           n n_induced p_induced
+##   &lt;chr&gt;                           &lt;int&gt;     &lt;int&gt;     &lt;dbl&gt;
+## 1 switch_glycerol_TMG20            2019         0    0     
+## 2 switch_lactulose                 1508       109    0.0723
+## 3 switch_lactulose_stdIllum        2206        23    0.0104
+## 4 switch_lactulose_TMG20           2894      2335    0.807 
+## 5 switch_lactulose_TMG20_stdIllum  4046      1835    0.454</code></pre>
+<!-- Stratifying the distributions by time after the switch (using 2h windows) confirms that LacZ-GFP expression has reached steady state at 7h after the switch (between 6 and 8h). -->
+<p>Since lactulose is not an inducer of the <em>lac</em> operon, the
+quantity of catabolic Lac enzymes is limiting growth at low TMG
+concentration. As a result, the instantaneous growth rate depends
+strongly on the LacZ-GFP concentration.
+<!-- Importantly, for cells spontaneously inducing in lactulose, their instantaneous growth rate doesn't depend on the LacZ-GFP concentration while it does for cells exposed to TMG. This suggest that the weak induction comes from another mechanisms?!? xxx --></p>
+<p>NB: not all data is shown.</p>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/unnamed-chunk-13-1.svg" /><!-- --></p>
+</div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>For the manuscript, we focus on low illumination data.</p>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/SM_figs-1.svg" /><!-- --><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/SM_figs-2.svg" /><!-- --><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/SM_figs-3.svg" /><!-- --><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/SM_figs-4.svg" /><!-- --><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/SM_figs-5.svg" /><!-- --></p>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/unnamed-chunk-16-1.svg" /><!-- --></p>
+<p><img
+src="GCS_MoM_lac_Transient_Arrest_files/figure-html/unnamed-chunk-18-1.svg" /><!-- --></p>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
